@@ -1,0 +1,17 @@
+# Log files
+*.log
+*.jou
+*.obj
+*.ipch
+*.ilk
+*.pdb
+
+# Temp files
+*.dcp
+
+# Cache folder
+/HomebrewGPU.cache/*
+/HomebrewGPU.runs/*
+/HomebrewGPU.sim/*
+/SoftwareEmu/HomebrewGPU/Debug/*
+/SoftwareEmu/HomebrewGPU/HomebrewGPU/Debug/*
