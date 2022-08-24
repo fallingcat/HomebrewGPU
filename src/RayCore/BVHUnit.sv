@@ -1,0 +1,326 @@
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 2021/04/14 20:07:25
+// Design Name: 
+// Module Name: Ray
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+`include "../Types.sv"
+`include "../Math/Fixed.sv"
+`include "../Math/Fixed3.sv"
+`include "../Math/FixedNorm.sv"
+`include "../Math/FixedNorm3.sv"
+
+//-------------------------------------------------------------------
+//
+//-------------------------------------------------------------------    
+module ProcessBVHChildLeaf (   
+    input visible,    
+    input BVH_Leaf leaf,    
+    // outputs...
+    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_prim,    
+    output logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] num_prim    
+    );
+
+    always_comb begin
+        if (visible) begin
+            start_prim <= leaf.StartPrimitive;
+            num_prim <= leaf.NumPrimitives;                                                                            
+        end      
+        else begin
+            start_prim <= 0;
+            num_prim <= 0;
+        end
+    end
+endmodule
+//-------------------------------------------------------------------
+//
+//-------------------------------------------------------------------    
+module ProcessNode (   
+    input visible,
+    input BVH_Node node,    
+    output logic [`BVH_NODE_INDEX_WIDTH-1:0] nodes[2]        
+    );
+
+    always_comb begin
+        if (visible) begin            
+           if (node.Nodes[0][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
+               nodes[0] <= node.Nodes[0];
+           end
+           else begin
+               nodes[0] <= {`BVH_NODE_INDEX_WIDTH{1'b1}};
+           end
+           if (node.Nodes[1][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
+               nodes[1] <= node.Nodes[1];
+           end
+           else begin
+               nodes[1] <= {`BVH_NODE_INDEX_WIDTH{1'b1}};
+           end
+        end
+        else begin
+            nodes[0] <= {`BVH_NODE_INDEX_WIDTH{1'b1}};
+            nodes[1] <= {`BVH_NODE_INDEX_WIDTH{1'b1}};
+        end
+    end
+endmodule
+//-------------------------------------------------------------------
+//
+//-------------------------------------------------------------------    
+module ProcessNodeLeaf (   
+    input visible,
+    input BVH_Leaf leaf[2],        
+    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_prim[2],    
+    output logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] num_prim[2]    
+    );
+    
+    ProcessBVHChildLeaf CHILD0(
+        .visible(visible),
+        .leaf(leaf[0]),    
+        // outputs...
+        .start_prim(start_prim[0]),    
+        .num_prim(num_prim[0])    
+    );      
+
+    ProcessBVHChildLeaf CHILD1(
+        .visible(visible),
+        .leaf(leaf[1]),    
+        // outputs...
+        .start_prim(start_prim[1]),    
+        .num_prim(num_prim[1])    
+    );             
+endmodule
+
+//-------------------------------------------------------------------
+//
+//-------------------------------------------------------------------    
+module BVHUnit (    
+    input clk,	    
+    input resetn, 
+
+    // controls...   
+    input strobe,    
+    input restart_strobe,
+
+    // inputs...    
+    input Fixed3 offset,
+    input Ray r,
+    //input logic [223:0] node_raw,    
+    input BVH_Node node,    
+    input BVH_Leaf leaf[2],    
+
+    // outputs...
+    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_prim[2],    
+    output logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] num_prim[2],    
+    output logic finished,
+    output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index
+    );
+
+    BVHUnitState State, NextState = BUS_Init;   
+
+    logic [`BVH_NODE_INDEX_WIDTH-1:0] NodeStack[`BVH_NODE_STACK_SIZE];
+    logic [`BVH_NODE_STACK_SIZE_WIDTH:0] NodeStackBottom;
+    logic [`BVH_NODE_INDEX_WIDTH-1:0] CurrentNodeIndex;    
+    //BVH_Node CurrentNode;
+    //BVH_Leaf CurrentLeaf[2];       
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrim[2];
+    logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] NumPrim[2];
+    
+    logic NodeVisible;        
+    logic ChildNodeVisible[2];   
+    
+    assign node_index = CurrentNodeIndex;
+
+`ifdef NO_BVH_MODEL
+    assign start_prim[0] = 0;
+    assign start_prim[1] = 0;
+    assign num_prim[0] = 0;
+    assign num_prim[1] = 0;
+    assign finished = 1;                
+`else
+    //-------------------------------------------------------------------
+    //
+    //-------------------------------------------------------------------    
+    function PushNode(		        
+		input [`BVH_NODE_INDEX_WIDTH-1:0] i
+		);
+        NodeStack[NodeStackBottom] = i;
+        NodeStackBottom = NodeStackBottom + 1;
+	endfunction
+    
+    //-------------------------------------------------------------------
+    //
+    //-------------------------------------------------------------------    
+    function PopNode;        
+        NodeStackBottom = NodeStackBottom - 1;
+        CurrentNodeIndex = NodeStack[NodeStackBottom];        
+	endfunction    
+
+    //-------------------------------------------------------------------
+    //
+    //-------------------------------------------------------------------        
+    always @(posedge clk, negedge resetn) begin
+        if (!resetn) begin
+            NextState <= BUS_Init;
+        end
+        else begin
+            State = NextState;
+
+            case (State)
+                (BUS_Init): begin        
+                    start_prim[0] <= 0;
+                    start_prim[1] <= 0;
+                    num_prim[0] <= 0;
+                    num_prim[1] <= 0;
+                    finished <= 1;                
+                    if (strobe) begin 
+                        finished <= 0;
+                        NodeStackBottom <= 0;                                         
+                        CurrentNodeIndex <= 0;                                                
+                        NextState <= BUS_ProcessNode;                                    
+                    end
+                end               
+                
+                (BUS_GetNode) : begin
+                    start_prim[0] <= 0;
+                    start_prim[1] <= 0;
+                    num_prim[0] <= 0;
+                    num_prim[1] <= 0; 
+                    finished <= 0; 
+
+                    if (restart_strobe) begin
+                        finished <= 1;
+                        NextState <= BUS_Init;                    
+                    end        
+                    else begin
+                        if (NodeStackBottom != 0) begin                    
+                            PopNode();    
+                            NextState <= BUS_ProcessNode;                    
+                        end
+                        else begin          
+                            finished <= 1;                  
+                            NextState <= BUS_Done;
+                        end                                         
+                    end
+                end
+
+                (BUS_ProcessNode): begin
+                `ifdef BVH_LEAF_AABB_TEST    
+                    if (NodeVisible) begin    
+                        if (node.Nodes[0][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
+                            PushNode(node.Nodes[0]);                            
+                            start_prim[0] <= 0;
+                            num_prim[0] <= 0;                                
+                        end 
+                        else begin
+                            if (ChildNodeVisible[0]) begin                            
+                                start_prim[0] <= leaf[0].StartPrimitive;
+                                num_prim[0] <= leaf[0].NumPrimitives;
+                            end
+                            else begin
+                                start_prim[0] <= 0;
+                                num_prim[0] <= 0;    
+                            end                            
+                        end
+
+                        if (node.Nodes[1][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
+                            PushNode(node.Nodes[1]);
+                            start_prim[1] <= 0;
+                            num_prim[1] <= 0;                                
+                        end 
+                        else begin
+                            if (ChildNodeVisible[1]) begin                            
+                                start_prim[1] <= leaf[1].StartPrimitive;
+                                num_prim[1] <= leaf[1].NumPrimitives;
+                            end
+                            else begin
+                                start_prim[1] <= 0;
+                                num_prim[1] <= 0;    
+                            end                            
+                        end
+                    end    
+                    else begin
+                        start_prim[0] <= 0;
+                        num_prim[0] <= 0;                                                                            
+                        start_prim[1] <= 0;
+                        num_prim[1] <= 0;
+                    end              
+                `elsif
+                    if (NodeVisible) begin       
+                        if (node.Nodes[0][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
+                            PushNode(node.Nodes[0]);                            
+                        end
+                        if (node.Nodes[1][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
+                            PushNode(node.Nodes[1]);                            
+                        end
+
+                        start_prim[0] <= leaf[0].StartPrimitive;
+                        num_prim[0] <= leaf[0].NumPrimitives;
+                        start_prim[1] <= leaf[1].StartPrimitive;
+                        num_prim[1] <= leaf[1].NumPrimitives;
+                    end    
+                    else begin
+                        start_prim[0] <= 0;
+                        num_prim[0] <= 0;                                                                            
+                        start_prim[1] <= 0;
+                        num_prim[1] <= 0;
+                    end              
+                `endif
+                    NextState <= BUS_GetNode;
+                end                
+                
+                (BUS_Done): begin      
+                    start_prim[0] <= 0;
+                    start_prim[1] <= 0; 
+                    num_prim[0] <= 0;
+                    num_prim[1] <= 0;  
+                    finished <= 1;
+                    if (restart_strobe) begin
+                        NextState <= BUS_Init;                    
+                    end                                
+                end
+
+                default: begin
+                    NextState <= BUS_Init;
+                end                        
+            endcase       
+        end                
+    end       	          
+
+    AABBTest AABB_NODE_TEST(
+        .orig(r.Orig),
+        .invdir(r.InvDir),
+        .aabb(node.Aabb),
+        .hit(NodeVisible)
+    );
+    
+    `ifdef BVH_LEAF_AABB_TEST    
+        AABBTest AABB_LEAF_TEST0(
+            .orig(r.Orig),
+            .invdir(r.InvDir),
+            .aabb(leaf[0].Aabb),
+            .hit(ChildNodeVisible[0])
+        );              
+
+        AABBTest AABB_LEAF_TEST1(
+            .orig(r.Orig),
+            .invdir(r.InvDir),
+            .aabb(leaf[1].Aabb),
+            .hit(ChildNodeVisible[1])
+        );                    
+    `endif
+`endif
+
+endmodule
