@@ -18,11 +18,11 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-`include "../Types.sv"
-`include "../Math/Fixed.sv"
-`include "../Math/Fixed3.sv"
-`include "../Math/FixedNorm.sv"
-`include "../Math/FixedNorm3.sv"
+`include "../../../Types.sv"
+`include "../../../Math/Fixed.sv"
+`include "../../../Math/Fixed3.sv"
+`include "../../../Math/FixedNorm.sv"
+`include "../../../Math/FixedNorm3.sv"
 
 //-------------------------------------------------------------------
 //
@@ -112,7 +112,9 @@ module RasterCombineOutput (
     end
 endmodule
 //-------------------------------------------------------------------
-//
+// Do BVH traversal and find the primitives which may have possible hit.
+// Then use Ray unit to find the closest hit.
+// Finally get the hiy position, normal, color, material, etc. data.
 //-------------------------------------------------------------------    
 module RasterUnit (      
     input clk,
@@ -126,7 +128,7 @@ module RasterUnit (
     input RenderState rs,    
     input output_fifo_full,	    
 
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],    
 
@@ -141,14 +143,18 @@ module RasterUnit (
     
     RasterState State, NextState = RASTS_Init;         
     RasterInputData Input, CurrentInput;
-    HitData PHitData, FinalHitData;	    
-       
-    PrimitiveGroupFIFO PrimitiveFIFO;	
-	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;
+    HitData PHitData, FinalHitData;	         
     
+    // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] LeafStartPrim[2];
     logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] LeafNumPrim[2];       
+
+    // Store the primitive groups data. Each group present a range of primitives
+    // which may have possible hit.
+    PrimitiveGroupFIFO PrimitiveFIFO;	
+	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;    
+
     logic ResetFinalHitData;    
     
     Fixed3 D;
@@ -191,7 +197,7 @@ module RasterUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function QueueReflectiveBoxAndGround();
+    function QueueExtraPrimitives();
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_MODEL_RAW_DATA_SIZE;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 3;		    
         PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
@@ -241,7 +247,7 @@ module RasterUnit (
                         EndPrimitiveIndex = 0;             
                         RealEndPrimitiveIndex = 0;           
                         BU_Strobe <= 1;                                                                    
-                        QueueReflectiveBoxAndGround();    
+                        QueueExtraPrimitives();    
                         NextState <= RASTS_Rasterize;                                                   
                     end                    
                 end   
@@ -357,7 +363,7 @@ module Raster (
     input RenderState rs,    
     input output_fifo_full,	    
 
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],           
 
@@ -374,7 +380,7 @@ module Raster (
     logic RGEN_Valid, RAS_FIFO_Full;
     RasterInputData RGEN_Output;    
 
-    RastaerRayGenerator RGEN (
+    RastaerRayGenerator RGEN(
         .clk(clk),
         .resetn(resetn),	
         .add_input(add_input),	    
@@ -388,7 +394,7 @@ module Raster (
         .out(RGEN_Output)        
     );
 
-    RasterUnit RAS (    
+    RasterUnit RAS(
         .clk(clk),
         .resetn(resetn),
         .add_input(RGEN_Valid),

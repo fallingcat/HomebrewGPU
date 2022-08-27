@@ -17,10 +17,10 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-`include "../Math/Fixed.sv"
-`include "../Math/Fixed3.sv"
-`include "../Math/FixedNorm.sv"
-`include "../Math/FixedNorm3.sv"
+`include "../../../Math/Fixed.sv"
+`include "../../../Math/Fixed3.sv"
+`include "../../../Math/FixedNorm.sv"
+`include "../../../Math/FixedNorm3.sv"
 
 //-------------------------------------------------------------------
 //
@@ -49,7 +49,9 @@ module ShadowingCombineOutput (
     end
 endmodule
 //-------------------------------------------------------------------
-//
+// Do BVH traversal and find the primitives which may have possible hit.
+// Then use Ray unit to find the any hit.
+// Finally decide if the fragment is in shadow or not.
 //-------------------------------------------------------------------    
 module ShadowingUnit (
     input clk,
@@ -63,7 +65,7 @@ module ShadowingUnit (
     input RenderState rs,    
     input output_fifo_full,	    
 
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],        
 
@@ -80,14 +82,17 @@ module ShadowingUnit (
 
     RasterOutputData Input, CurrentInput;
 
-    HitData PHitData, FinalHitData;	    
-    
-    PrimitiveGroupFIFO PrimitiveFIFO;	
-	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;
-    
+    HitData PHitData, FinalHitData;	       
+        
+    // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] LeafStartPrim[2];
     logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] LeafNumPrim[2]; 
+
+    // Store the primitive groups data. Each group present a range of primitives
+    // which may have possible hit.
+    PrimitiveGroupFIFO PrimitiveFIFO;	
+	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;
 
     //-------------------------------------------------------------------
     //
@@ -127,7 +132,7 @@ module ShadowingUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function QueueReflectiveBoxAndGround();
+    function QueueExtraPrimitives();
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_MODEL_RAW_DATA_SIZE;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 3;		    
         PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
@@ -177,14 +182,14 @@ module ShadowingUnit (
                         StartPrimitiveIndex = 0;
                         EndPrimitiveIndex = 0;             
                         RealEndPrimitiveIndex = 0;             
-
-                        if (CurrentInput.bHit) begin    
-                            BU_Strobe <= 1;                                                                        
-                            QueueReflectiveBoxAndGround();                                                            
-                            NextState <= SHDWS_Rasterize;          
+                        
+                        if (CurrentInput.SurfaceType == ST_None) begin    
+                            NextState <= SHDWS_Done;                            
                         end
                         else begin                           
-                            NextState <= SHDWS_Done;
+                            BU_Strobe <= 1;                                                                        
+                            QueueExtraPrimitives();                                                            
+                            NextState <= SHDWS_Rasterize;          
                         end                                                                                                
                     end                    
                 end   
@@ -279,7 +284,7 @@ module PassOverShadowingUnit (
     input RenderState rs,    
     input output_fifo_full,	    
     
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],               
 
@@ -369,7 +374,7 @@ module Shadowing(
     input RasterOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],           
 
@@ -385,8 +390,9 @@ module Shadowing(
     logic SRGEN_Valid, SHDW_FIFO_Full; 
     RasterOutputData SRGEN_Output;    
 
-    PassOverShadowingUnit SHDW (
-    //ShadowingUnitV4 SHDW (
+
+`ifdef IMPLEMENT_SHADOWING
+    ShadowingUnit SHDW(
         .clk(clk),
         .resetn(resetn),
         .add_input(add_input),
@@ -405,9 +411,31 @@ module Shadowing(
         .node(node),
         .leaf(leaf)    
     );
+`else
+    PassOverShadowingUnit SHDW(
+        .clk(clk),
+        .resetn(resetn),
+        .add_input(add_input),
+        .input_data(input_data),        
+        .rs(rs),        
+        .output_fifo_full(output_fifo_full),
+        .valid(valid),
+        .out(out),
+        .fifo_full(fifo_full),
 
+        .start_primitive(start_primitive),
+        .end_primitive(end_primitive),
+        .p(p),
+
+        .node_index(node_index),
+        .node(node),
+        .leaf(leaf)    
+    );
+`endif
+
+    
     /*
-    ShadowingRayGeneratorV4 SRGEN (
+    ShadowingRayGenerator SRGEN (
         .clk(clk),
         .resetn(resetn),	
         .add_input(add_input),	    
@@ -418,7 +446,7 @@ module Shadowing(
         .fifo_full(fifo_full)
     );
 
-    ShadowingUnitV4 SHDW (
+    ShadowingUnit SHDW (
         .clk(clk),
         .resetn(resetn),
         .add_input(SRGEN_Valid),

@@ -68,7 +68,7 @@ module TestRasterUnit (
     // inputs...
     input RasterInputData input_data,            
     input RenderState rs,        
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],    
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],    
     input BVH_Node node,    
     input BVH_Leaf leaf[2],
     input output_fifo_full,	    
@@ -298,7 +298,7 @@ module TestRaster (
     input RasterInputData input_data,                 
     input RasterInputData ref_input_data,            
     input RenderState rs,        
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],        
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],        
     input BVH_Node node,    
     input BVH_Leaf leaf[2],       
     input output_fifo_full,	    
@@ -436,7 +436,7 @@ module TestShadowingUnit_Simple (
     // inputs...    
     input RasterOutputData input_data,    
     input RenderState rs,    
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...      
@@ -558,7 +558,7 @@ module TestShadowingUnit (
     // inputs...    
     input RasterOutputData input_data,    
     input RenderState rs,    
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...      
@@ -764,7 +764,7 @@ module TestShadowing (
     input RasterOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
 
     // outputs...  
     output logic fifo_full,
@@ -936,8 +936,8 @@ module TestRayCore(
     // inputs...    
     input RasterInputData input_data,        
     input RenderState rs,
-    input BVH_Primitive p0[`BVH_AABB_TEST_UNIT_SIZE],
-    input BVH_Primitive p1[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p0[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p1[`BVH_AABB_TEST_UNIT_SIZE],
     input BVH_Node node_0,    
     input BVH_Node node_1,    
     input BVH_Leaf leaf_0[2],       

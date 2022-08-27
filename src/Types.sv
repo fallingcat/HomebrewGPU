@@ -44,8 +44,13 @@
 `define FIXED_NORM_FRAC_HALF_WIDTH 	        7
 `define FIXED_NORM				            [`FIXED_NORM_WIDTH-1:0]
 
+//`define GPU_CLK_100                         1
 //`define GPU_CLK_50                          1
-`ifdef GPU_CLK_50
+
+`ifdef GPU_CLK_100
+    `define FIXED_DIV_STEP                  4
+    `define RGB8_DIV_STEP                   4
+`elsif GPU_CLK_50
     `define FIXED_DIV_STEP                  8
     `define RGB8_DIV_STEP                   8
 `else
@@ -103,12 +108,56 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define FRAMEBUFFER_READ_ID                 8'd0
 
 // Configuration >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// RayCore
+//`define IMPLEMENT_SHADOWING                 1
+`define IMPLEMENT_REFLECTION                1
+//`define IMPLEMENT_REFRACTION                1
+
 // BVH ---------------------------------------------------------------------
 `define BVH_PRIMITIVE_PATH                  `STRINGIFY(E:/MyWork/HomebrewGPU/data/chr_sword.vox.bvh.primitives.txt)
 `define BVH_NODES_PATH                      `STRINGIFY(E:/MyWork/HomebrewGPU/data/chr_sword.vox.bvh.nodes.txt)
 `define BVH_LEAVES_PATH                     `STRINGIFY(E:/MyWork/HomebrewGPU/data/chr_sword.vox.bvh.leaves.txt)
 
-`define BVH_PRIMITIVE_RAW_DATA_SIZE         220
+// AABB raw data -----------------------------------------------------------
+// [151:56]         = Position.x
+// [119:88]         = Position.y
+// [87:56]          = Position.z        
+// [55:24]          = Size        
+// [23:16]          = Color.r
+// [15:8]           = Color.g
+// [7:0]            = Color.b
+`define BVH_AABB_RAW_DATA_WIDTH             152
+// Sphere raw data -----------------------------------------------------------
+// [151:56]         = Center.x
+// [119:88]         = Center.y
+// [87:56]          = Center.z        
+// [55:24]          = Radius        
+// [23:16]          = Color.r
+// [15:8]           = Color.g
+// [7:0]            = Color.b
+`define BVH_SPHERE_RAW_DATA_WIDTH           152
+// BVH node raw data -----------------------------------------------------------
+// [223:192]        = Boundary Box Max.x
+// [191:160]        = Boundary Box Max.y
+// [159:128]        = Boundary Box Max.z
+// [127:96]         = Boundary Box Min.x
+// [95:64]          = Boundary Box Min.y
+// [63:32]          = Boundary Box Min.z
+// [31:16]          = Left Node         
+// [15:0]           = Right Node                 
+`define BVH_NODE_RAW_DATA_WIDTH             224
+// BVH leaf raw data -----------------------------------------------------------
+// [231:200]        = Boundary Box Max.x
+// [199:168]        = Boundary Box Max.y
+// [167:136]        = Boundary Box Max.z
+// [135:104]        = Boundary Box Min.x
+// [103:72]         = Boundary Box Min.y
+// [71:40]          = Boundary Box Min.z            
+// [39:8]           = Start Primitive Index
+// [7:0]            = Number of Primitives
+`define BVH_LEAF_RAW_DATA_WIDTH             232
+`define BVH_AABB_RAW_DATA_SIZE              220
+`define BVH_SPHERE_RAW_DATA_SIZE            4
 `define BVH_MODEL_RAW_DATA_SIZE             207
 `define BVH_NODE_RAW_DATA_SIZE              20
 `define BVH_LEAF_RAW_DATA_SIZE              20
@@ -125,6 +174,9 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 
 `define BVH_AABB_TEST_UNIT_SIZE_WIDTH       0
 `define BVH_AABB_TEST_UNIT_SIZE             2**`BVH_AABB_TEST_UNIT_SIZE_WIDTH
+
+`define BVH_SPHERE_TEST_UNIT_SIZE_WIDTH     0
+`define BVH_SPHERE_TEST_UNIT_SIZE           2**`BVH_SPHERE_TEST_UNIT_SIZE_WIDTH
 
 // Ray Core --------------------------------------------------------------
 //`define BASIC_RAY_CORE                     1
@@ -298,6 +350,15 @@ typedef struct {
     Fixed3 Max;            
 } AABB;
 
+typedef struct {
+    Fixed3 Center;
+    Fixed Radius;            
+} Sphere;
+
+typedef struct {
+    Fixed3 P[3];    
+} Triangle;
+
 typedef enum logic [1:0] {
     Null_Ray                = 2'd0, 
     Raster_Ray              = 2'd1, 
@@ -312,6 +373,12 @@ typedef struct {
     Fixed MinT;
     Fixed MaxT;        
 } Ray;
+
+typedef enum logic [1:0] {
+    PT_AABB                 = 2'd0,
+    PT_Sphere               = 2'd1,
+    ST_Triangle             = 2'd2     
+} PrimitiveType;
 
 typedef enum logic [1:0] {
     ST_None                 = 2'd0,
@@ -351,7 +418,21 @@ typedef struct {
     RGB8 Color;      
     logic `VOXEL_INDEX VI;      
     SurfaceType SurfaceType;
-} BVH_Primitive;
+} BVH_Primitive_AABB;
+
+typedef struct {
+    Sphere Sphere;      
+    RGB8 Color;      
+    logic `VOXEL_INDEX VI;      
+    SurfaceType SurfaceType;
+} BVH_Primitive_Sphere;
+
+typedef struct {
+    Triangle Triangle;      
+    RGB8 Color;      
+    logic `VOXEL_INDEX VI;      
+    SurfaceType SurfaceType;
+} BVH_Primitive_Triangle;
 
 typedef struct {
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitive;

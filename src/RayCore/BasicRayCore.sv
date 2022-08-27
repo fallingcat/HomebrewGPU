@@ -56,7 +56,7 @@ module BasicRasterUnit (
     // inputs...
     input RasterInputData input_data,            
     input RenderState rs,    
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...  
@@ -147,7 +147,7 @@ module BasicRaster (
     input RasterInputData input_data,                 
     input RasterInputData ref_input_data,            
     input RenderState rs,    
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...  
@@ -222,7 +222,7 @@ module BasicShadowingUnit (
     // inputs...    
     input RasterOutputData input_data,    
     input RenderState rs,    
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...      
@@ -303,7 +303,7 @@ module BasicShadowing (
     input RasterOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
-    input BVH_Primitive p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
 
     // outputs...  
     output logic fifo_full,
@@ -447,8 +447,8 @@ module BasicRayCore(
     // inputs...    
     input RasterInputData input_data,        
     input RenderState rs,
-    input BVH_Primitive p0[`BVH_AABB_TEST_UNIT_SIZE],
-    input BVH_Primitive p1[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p0[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p1[`BVH_AABB_TEST_UNIT_SIZE],
         
     // outputs...  
     output logic fifo_full,        

@@ -17,15 +17,15 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-`include "../Math/Fixed.sv"
-`include "../Math/Fixed3.sv"
-`include "../Math/FixedNorm.sv"
-`include "../Math/FixedNorm3.sv"
+`include "../../../Math/Fixed.sv"
+`include "../../../Math/Fixed3.sv"
+`include "../../../Math/FixedNorm.sv"
+`include "../../../Math/FixedNorm3.sv"
 
 //-------------------------------------------------------------------
 // 
 //-------------------------------------------------------------------    
-module LightingDiffuse(
+module _LightingDiffuse(
     input FixedNorm3 l,
     input FixedNorm3 n,
     input logic shadow,
@@ -44,7 +44,7 @@ endmodule
 //-------------------------------------------------------------------
 // 
 //-------------------------------------------------------------------    
-module FinalDiffuse(
+module _FinalDiffuse(
     input FixedNorm3 l,
     input FixedNorm3 n,
     input logic hit,
@@ -61,7 +61,7 @@ module FinalDiffuse(
         Ambient.Value <= `FIXED_NORM_WIDTH'd4915; 
     end
 
-    LightingDiffuse A0(l, n, shadow, D);
+    _LightingDiffuse A0(l, n, shadow, D);
     FixedNorm_Add A1(D, Ambient, Diffuse);
     FixedNorm_Greater A2(Diffuse, FixedNormOne(), Over);
 
@@ -126,7 +126,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module ComputeCurrentColor(    
+module _ComputeCurrentColor(    
     input SurfaceType surface,
     input FixedNorm diffuse,
     input RGB8 color,
@@ -165,7 +165,7 @@ module Color_Accu(
     end
 endmodule 
 //-------------------------------------------------------------------
-// 
+// Accumulate RGB8 values
 //-------------------------------------------------------------------    
 module RGB8_Accu(
     input RGB8 c0,
@@ -180,7 +180,7 @@ module RGB8_Accu(
     
 endmodule 
 //-------------------------------------------------------------------
-// 
+// Compute reflection direction
 //-------------------------------------------------------------------    
 module ReflectionDir(
     input FixedNorm3 n,
@@ -188,6 +188,7 @@ module ReflectionDir(
     output Fixed3 r
     );
 
+`ifdef IMPLEMENT_REFLECTION
     Fixed3 TN, NV;
     Fixed D, D2;
 
@@ -199,6 +200,8 @@ module ReflectionDir(
     Fixed_LSft A1(D, 6'd1, D2);
     Fixed3_Mul A2(D2, TN, NV);  
     Fixed3_Sub A3(i, NV, r);
+`endif
+
 endmodule 
 //-------------------------------------------------------------------
 // 
@@ -292,6 +295,7 @@ module RefractionDir(
     output logic valid
     );
 
+`ifdef IMPLEMENT_REFRACTION
     logic ETAStrobe, ETAValid, SqrtKValid;
     Fixed3 N, R0, R1, R;
     Fixed Base, D, D2, ETA, ETA2, K, SqrtK, T, T2, T3, T4;
@@ -363,9 +367,13 @@ module RefractionDir(
     Fixed_Add REFRA_T4(T3, SqrtK, T4);
     Fixed3_Mul REFRA_R1(T4, N, R1);
     Fixed3_Sub REFRA_R(R0, R1, R);
+`else
+    assign valid = 0;
+`endif
+
 endmodule 
 //-------------------------------------------------------------------
-//
+// Prepare final output data for fragment
 //-------------------------------------------------------------------    
 module ShaderCombineOutput (      
     input clk,
@@ -383,7 +391,7 @@ module ShaderCombineOutput (
     end
 endmodule
 //-------------------------------------------------------------------
-//
+// Prepare reflection/refraction output data 
 //-------------------------------------------------------------------    
 module ShaderCombineRefOutput (      
     input clk,
@@ -418,7 +426,80 @@ module ShaderCombineRefOutput (
     end
 endmodule
 //-------------------------------------------------------------------
-//
+// Compute reflection or refraction direction
+//-------------------------------------------------------------------    
+module _ReflectionAndRefractionDir (      
+    input clk,
+    input resetn,
+    input strobe,  
+
+    input FixedNorm3 n,
+    input Fixed3 i,    
+    input Fixed eta,  
+
+    output Fixed3 reflect,
+    output Fixed3 refract,
+    output logic valid
+    );
+
+    // Compute reflection direction
+    ReflectionDir REFLECTION(
+        .n(n),
+        .i(i),    
+        .r(reflect)
+    );    
+
+    // Compute refraction direction
+    RefractionDir REFRACTION(
+        .clk(clk),    
+        .resetn(resetn),  
+        .strobe(strobe),  
+        .n(n),
+        .i(i),    
+        .eta(eta),    
+        .r(refract),
+        .valid(valid)
+    );
+
+endmodule
+
+//-------------------------------------------------------------------
+// Prepare output data for fragment. 
+// Output final color of fragment or reflection/refraction data for
+// recursive bounce.
+//-------------------------------------------------------------------    
+module _ShaderOutput (      
+    input clk,
+
+    input ShaderState state,    
+    input ShadowingOutputData input_data,
+    input RGB8 color,
+
+    output ShaderOutputData out,
+    output RasterInputData ref_out
+    );
+
+    // Prepare output data for fragment 
+    ShaderCombineOutput CO(      
+        .clk(clk),
+        .strobe(state == SS_Done),
+        .input_data(input_data),
+        .color(color),
+        .out(out)
+    );
+
+    // Prepare output data for recursive bounce
+    ShaderCombineRefOutput CRO(      
+        .clk(clk),
+        .strobe(state == SS_RefDone || state == SS_RefractDone),
+        .input_data(input_data),
+        .color(color),
+        .out(ref_out)
+    );
+endmodule
+//-------------------------------------------------------------------
+// Shader stage compute the final output data of fragment or the
+// relection/refraction data for recursive bounce.
 //-------------------------------------------------------------------    
 module Shader(   
     input clk,
@@ -433,10 +514,15 @@ module Shader(
     input logic output_fifo_full,
 
     // outputs...      
+    // If the FIFO is full?
     output logic fifo_full,
+    // If the output is ready?
     output logic valid,
-    output ShaderOutputData out,    
+    // Output data for fragment 
+    output ShaderOutputData out,
+    // If the reflection/refraction output is ready?    
     output logic ref_valid,
+    // Output data for reflection/refraction
     output RasterInputData ref_out   
     );
 
@@ -498,25 +584,37 @@ module Shader(
                     ref_valid <= 0;              
                     ColorDiv_Strobe <= 0;                 
 
-                    if (ColorDiv_Valid) begin                       
-                        if (CurrentInput.BounceLevel >= rs.MaxBounceLevel ||
-                            CurrentInput.SurfaceType == ST_None || CurrentInput.SurfaceType == ST_Lambertian) begin
+                    if (ColorDiv_Valid) begin    
+                        if (CurrentInput.BounceLevel >= rs.MaxBounceLevel) begin
                             valid <= 0;
                             ref_valid <= 0;
-                            NextState <= SS_Done;                               
-                        end
-                        else begin                                                                        
-                            valid <= 0;
-                            ref_valid <= 0;                            
-                            if (CurrentInput.SurfaceType == ST_Metal) begin
-                                NextState <= SS_RefDone;                   
-                            end
-                            else begin
-                                Eta.Value <= 15728;
-                                Refraction_Strobe <= 1;
-                                NextState <= SS_RefractDir;                    
-                            end                                         
-                        end                           
+                            NextState <= SS_Done;     
+                        end                                                  
+                        else begin
+                            case (CurrentInput.SurfaceType)  
+                            `ifdef IMPLEMENT_REFLECTION
+                                (ST_Metal): begin
+                                    valid <= 0;
+                                    ref_valid <= 0;                            
+                                    NextState <= SS_RefDone;                   
+                                end
+                            `endif
+                            `ifdef IMPLEMENT_REFRACTION
+                                (ST_Dielectric): begin
+                                    valid <= 0;
+                                    ref_valid <= 0;                            
+                                    Eta.Value <= 15728;
+                                    Refraction_Strobe <= 1;
+                                    NextState <= SS_RefractDir;
+                                end
+                            `endif                            
+                                default : begin
+                                    valid <= 0;
+                                    ref_valid <= 0;
+                                    NextState <= SS_Done;                               
+                                end
+                            endcase                 
+                        end                                        
                     end
                 end
 
@@ -526,6 +624,7 @@ module Shader(
                     NextState <= SS_Init;                                
                 end
 
+            `ifdef IMPLEMENT_REFLECTION
                 (SS_RefDone): begin
                     if (!output_fifo_full) begin
                         ref_out.RasterRay.Dir <= ReflectionDir;
@@ -534,7 +633,9 @@ module Shader(
                         NextState <= SS_Init;            
                     end                                        
                 end
+            `endif
 
+            `ifdef IMPLEMENT_REFRACTION
                 (SS_RefractDir): begin
                     valid <= 0;
                     ref_valid <= 0;                    
@@ -552,6 +653,7 @@ module Shader(
                         NextState <= SS_Init;            
                     end                                        
                 end
+            `endif
 
                 default: begin
                     valid <= 0;
@@ -562,78 +664,80 @@ module Shader(
         end        
     end   
 
-    FinalDiffuse DIFFUSE(
-        .l(rs.Light[0].NormDir),
+    // Compute diffuse of current ray
+    _FinalDiffuse DIFFUSE(        
+        // Light direction
+        .l(rs.Light[0].NormDir), 
+        // Normal direction of fragment
         .n(CurrentInput.Normal),
+        // Fragment of object or empty
         .hit(CurrentInput.SurfaceType != ST_None),
-        .shadow(CurrentInput.bShadow),
+        // Fragment in shadow or not
+        .shadow(CurrentInput.bShadow),        
+        // Out : the diffuse value
         .o(Diffuse)
     );
-
-    // Compute the accumulated color for SS_Combine state 
-    /*
-    Fixed_RGB8_Mul CURRENT_COLOR(
-        .a(Diffuse),
-        .b(CurrentInput.Color),
-        .o(CurrentColor)
-    );
-    */
-
-    ComputeCurrentColor CURRENT_COLOR(
+    
+    // Compute color of current ray
+    _ComputeCurrentColor CURRENT_COLOR(
+        // Surface type of fragment
         .surface(CurrentInput.SurfaceType),
+        // Diffuse value of fragment
         .diffuse(Diffuse),
+        // Material color of fragment
         .color(CurrentInput.Color),
+        // Out : Current color = Material color * Diffuse
         .o(CurrentColor)
     );    
 
+    // Combine the color of current and last rays
     RGB8_Accu COMBINE_COLOR(
+        // The result color of previous rays
         .c0(CurrentInput.LastColor),
+        // The bounce level of current ray
         .a(CurrentInput.BounceLevel),
+        // Fragment color of current ray
         .c1(CurrentColor),
+        // Out : Combined color
         .o(TC)
     );
 
+    // Compute the final color of fragment
     RGB8_Div_V2 FINAL_COLOR(        
 		.clk(clk),
         .resetn(resetn),
 		.strobe(ColorDiv_Strobe),
+        // Combined color of fragment
 		.a(TC), 
+        // Total number of bounce
         .b(NumBounce), 
+        // Out : If the result is ready
 		.valid(ColorDiv_Valid),
+        // Out : The final color of fragment
 		.q(FinalColor)
 	);    
 
-    ReflectionDir REFLECTION(
-        .n(CurrentInput.Normal),
-        .i(CurrentInput.ViewDir),    
-        .r(ReflectionDir)
-    );
-    
-    RefractionDir REFRACTION(
+    // Compute reflection/refraction direction
+    _ReflectionAndRefractionDir REF_DIR(
         .clk(clk),    
         .resetn(resetn),  
         .strobe(Refraction_Strobe),  
         .n(CurrentInput.Normal),
         .i(CurrentInput.ViewDir),    
         .eta(Eta),    
-        .r(RefractionDir),
+        .reflect(ReflectionDir),
+        .refract(RefractionDir),
         .valid(Refraction_Valid)
-    );
-    
-    ShaderCombineOutput CO(      
-        .clk(clk),
-        .strobe(NextState == SS_Done),
-        .input_data(CurrentInput),
-        .color(FinalColor),
-        .out(out)
-    );
+    );    
 
-    ShaderCombineRefOutput CRO(      
+    // Prepare output data for fragment 
+    _ShaderOutput SHDER_OUTPUT(
         .clk(clk),
-        .strobe(NextState == SS_RefDone || NextState == SS_RefractDone),
+        .state(NextState),    
         .input_data(CurrentInput),
         .color(FinalColor),
-        .out(ref_out)
+        .out(out),
+        .ref_out(ref_out)
     );
     
 endmodule

@@ -18,16 +18,16 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-`include "../Types.sv"
-`include "../Math/Fixed.sv"
-`include "../Math/Fixed3.sv"
-`include "../Math/FixedNorm.sv"
-`include "../Math/FixedNorm3.sv"
+`include "../../Types.sv"
+`include "../../Math/Fixed.sv"
+`include "../../Math/Fixed3.sv"
+`include "../../Math/FixedNorm.sv"
+`include "../../Math/FixedNorm3.sv"
 
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module QueryPrimitiveAABB (   
+module _QueryPrimitiveAABB (   
     input [31:0] s,
     input [95:0] a,
     output AABB out
@@ -48,7 +48,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module QueryPrimitiveColor (   
+module _QueryPrimitiveColor (   
     input [23:0] a,
     output RGB8 out
     );
@@ -63,7 +63,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module QueryPrimitiveSurafceType (   
+module _QueryPrimitiveSurafceType (   
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] i,
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] bound,    
     output logic `VOXEL_INDEX vi,      
@@ -71,35 +71,39 @@ module QueryPrimitiveSurafceType (
     );
 
     always_comb begin
-        if (i < bound && i < `BVH_PRIMITIVE_RAW_DATA_SIZE) begin
+        if (i < bound && i < `BVH_AABB_RAW_DATA_SIZE) begin
             vi <=  i;
         end
         else begin
             vi <= `NULL_VOXEL_INDEX;  
         end
 
-        //if (i >= (`BVH_MODEL_RAW_DATA_SIZE + 1)) begin                    
-        //if (i >= (`BVH_MODEL_RAW_DATA_SIZE)) begin                    
-        if (i == (`BVH_MODEL_RAW_DATA_SIZE + 1)) begin                    
-            //out <= ST_Metal;
-            //out <= ST_Lambertian;            
-            out <= ST_Dielectric;
+    `ifdef IMPLEMENT_REFRACTION        
+        if (i == (`BVH_MODEL_RAW_DATA_SIZE + 1)) begin                                
+            out <= ST_Dielectric;            
         end 
-        //else if (i == (`BVH_MODEL_RAW_DATA_SIZE) || i == (`BVH_MODEL_RAW_DATA_SIZE + 2)) begin                    
         else if (i == (`BVH_MODEL_RAW_DATA_SIZE + 2)) begin                    
             out <= ST_Metal;
-            //out <= ST_Lambertian;            
-            //out <= ST_Dielectric;
         end 
         else begin
             out <= ST_Lambertian;
         end                
+    `elsif IMPLEMENT_REFLECTION
+        if (i >= (`BVH_MODEL_RAW_DATA_SIZE + 1)) begin                    
+            out <= ST_Metal;            
+        end     
+        else begin
+            out <= ST_Lambertian;
+        end     
+    `else
+        out <= ST_Lambertian;
+    `endif  
     end           
 endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module PostQueryPrimitive (   
+module _PostQueryPrimitive (   
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] i,
     input Fixed3 offset,
     input AABB aabb,    
@@ -122,35 +126,35 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module QueryPrimitive (   
+module _QueryPrimitive (   
     input [151:0] raw,    
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] i,
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] bound,    
     input Fixed3 offset,    
-    output BVH_Primitive p
+    output BVH_Primitive_AABB p
     );    
 
     AABB TempAABB;
 
-    QueryPrimitiveAABB QUERY_AABB(
+    _QueryPrimitiveAABB QUERY_AABB(
         .s(raw[55:24]),
         .a(raw[151:56]),
         .out(TempAABB)
     );
 
-    QueryPrimitiveColor QUERY_COLOR(
+    _QueryPrimitiveColor QUERY_COLOR(
         .a(raw[23:0]),
         .out(p.Color)
     );
 
-    QueryPrimitiveSurafceType QUERY_ST(
+    _QueryPrimitiveSurafceType QUERY_ST(
         .i(i),
         .bound(bound),
         .vi(p.VI),
         .out(p.SurfaceType)
     );
 
-    PostQueryPrimitive QUERY_POST(
+    _PostQueryPrimitive QUERY_POST(
         .i(i),
         .offset(offset),
         .aabb(TempAABB),
@@ -160,7 +164,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module DecodeBVHLeafIndex (   
+module _DecodeBVHLeafIndex (   
     input [`BVH_NODE_INDEX_WIDTH-1:0] index,         
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] leaf_index
     );
@@ -177,7 +181,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module QueryBVHLeaf (   
+module _QueryBVHLeaf (   
     input [231:0] raw,
     input valid,
     input Fixed3 offset,
@@ -216,7 +220,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module QueryBVHNode (   
+module _QueryBVHNode (   
     input [223:0] node_raw,
     input Fixed3 offset,    
     output BVH_Node node
@@ -242,7 +246,9 @@ module QueryBVHNode (
     );
 endmodule
 //-------------------------------------------------------------------
-//
+// BVH structure module. 
+// Store BVH data and resposible for primitive data query 
+// from other modules.
 //-------------------------------------------------------------------    
 module BVHStructure (   
     input clk,	    
@@ -274,8 +280,8 @@ module BVHStructure (
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_index_1,
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_bound_0,
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_bound_1,
-    output BVH_Primitive p0[`BVH_AABB_TEST_UNIT_SIZE],
-    output BVH_Primitive p1[`BVH_AABB_TEST_UNIT_SIZE]    
+    output BVH_Primitive_AABB p0[`BVH_AABB_TEST_UNIT_SIZE],
+    output BVH_Primitive_AABB p1[`BVH_AABB_TEST_UNIT_SIZE]    
     );
 
     logic SDReadDataValid;
@@ -283,13 +289,13 @@ module BVHStructure (
 
     logic [255:0] WriteData;
 
-    logic [223:0] NodeRawData[`BVH_NODE_RAW_DATA_SIZE];    
+    logic [`BVH_NODE_RAW_DATA_WIDTH-1:0] NodeRawData[`BVH_NODE_RAW_DATA_SIZE];    
     logic [6:0] ByteOffset = 28, NodeIndex = 0;        
 
-    logic [231:0] LeafRawData[`BVH_LEAF_RAW_DATA_SIZE];
+    logic [`BVH_LEAF_RAW_DATA_WIDTH-1:0] LeafRawData[`BVH_LEAF_RAW_DATA_SIZE];
     logic [`BVH_NODE_INDEX_WIDTH-1:0] LeafIndex[4];
 
-    logic [151:0] PrimitiveRawData[`BVH_PRIMITIVE_RAW_DATA_SIZE];         
+    logic [`BVH_AABB_RAW_DATA_WIDTH-1:0] AABBRawData[`BVH_AABB_RAW_DATA_SIZE];         
     Fixed Scale[6];    
 
 
@@ -298,14 +304,14 @@ module BVHStructure (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function AddReflectiveBoxAndGroundPrimitive();
+    function AddExtraPrimitives();
         // Ground ----
         Scale[0] = _Fixed(256);
         Scale[1] = _Fixed(-256);        
 
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE][151:120] = `FIXED_ZERO;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE][119:88]  = Scale[1].Value;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE][87:56]   = `FIXED_ZERO;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][151:120] = `FIXED_ZERO;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][119:88]  = Scale[1].Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][87:56]   = `FIXED_ZERO;
         
         //`ifdef TEST_RAY_CORE
         //    Scale = _Fixed(2);
@@ -313,65 +319,65 @@ module BVHStructure (
             //Scale[0] = _Fixed(256);
         //`endif
         
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE][55:24]   = Scale[0].Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][55:24]   = Scale[0].Value;
 
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE][23:16]   = 100;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE][15:8]    = 225;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE][7:0]     = 100;	        
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][23:16]   = 100;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][15:8]    = 225;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][7:0]     = 100;	        
 
         Scale[0] = _Fixed(10);        
         Scale[1] = _Fixed(13);        
 
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][151:120]     = `FIXED_ZERO;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][119:88]      = Scale[1].Value;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][87:56]       = `FIXED_ZERO;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][151:120]     = `FIXED_ZERO;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][119:88]      = Scale[1].Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][87:56]       = `FIXED_ZERO;
         
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][55:24]       = Scale[0].Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][55:24]       = Scale[0].Value;
         
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][23:16]       = 255;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][15:8]        = 255;//155;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][7:0]         = 145;//155;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][23:16]       = 255;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][15:8]        = 255;//155;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][7:0]         = 145;//155;
 
         Scale[0] = _Fixed(20);        
         Scale[1] = _Fixed(60);                                 
 
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][151:120]     = `FIXED_ZERO;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][119:88]      = Scale[0].Value;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][87:56]       = Scale[1].Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][151:120]     = `FIXED_ZERO;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][119:88]      = Scale[0].Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][87:56]       = Scale[1].Value;
         
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][55:24]       = Scale[0].Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][55:24]       = Scale[0].Value;
 
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][23:16]       = 255;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][15:8]        = 100;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][7:0]         = 125;	  	        
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][23:16]       = 255;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][15:8]        = 100;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][7:0]         = 125;	  	        
 
         /*
         // ReflectiveBox ----
         Scale = _Fixed(12);        
 
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][151:120]     = `FIXED_ZERO;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][119:88]      = Scale.Value;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][87:56]       = `FIXED_ZERO;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][151:120]     = `FIXED_ZERO;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][119:88]      = Scale.Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][87:56]       = `FIXED_ZERO;
         
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][55:24]       = Scale.Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][55:24]       = Scale.Value;
         
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][23:16]       = 255;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][15:8]        = 255;//155;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][7:0]         = 145;//155;	        
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][23:16]       = 255;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][15:8]        = 255;//155;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][7:0]         = 145;//155;	        
 
         Scale = _Fixed(8);        
         Scale2 = _Fixed(-10);                         
         Scale3 = _Fixed(-37);
 
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][151:120]     = Scale2.Value;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][119:88]      = Scale.Value;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][87:56]       = Scale3.Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][151:120]     = Scale2.Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][119:88]      = Scale.Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][87:56]       = Scale3.Value;
         
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][55:24]       = Scale.Value;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][55:24]       = Scale.Value;
 
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][23:16]       = 255;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][15:8]        = 100;
-        PrimitiveRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][7:0]         = 125;	                
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][23:16]       = 255;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][15:8]        = 100;
+        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][7:0]         = 125;	                
         */
     endfunction 
 
@@ -383,8 +389,8 @@ module BVHStructure (
 
         $readmemh(`BVH_LEAVES_PATH, LeafRawData);	        
 
-        $readmemh(`BVH_PRIMITIVE_PATH, PrimitiveRawData);
-        AddReflectiveBoxAndGroundPrimitive();
+        $readmemh(`BVH_PRIMITIVE_PATH, AABBRawData);
+        AddExtraPrimitives();
 	end		
 
     /*
@@ -421,56 +427,56 @@ module BVHStructure (
     end  
     */
 
-    QueryBVHNode QUERY_NODE_0(   
+    _QueryBVHNode QUERY_NODE_0(   
         .node_raw(NodeRawData[node_index_0]),
         .offset(offset),                
         .node(node_0)    
     );
-    QueryBVHNode QUERY_NODE_1(   
+    _QueryBVHNode QUERY_NODE_1(   
         .node_raw(NodeRawData[node_index_1]),
         .offset(offset),                
         .node(node_1)    
     );
 
-    DecodeBVHLeafIndex DECODER_0(
+    _DecodeBVHLeafIndex DECODER_0(
         .index(node_0.Nodes[0]),         
         .leaf_index(LeafIndex[0])
     );  
-    DecodeBVHLeafIndex DECODER_1(
+    _DecodeBVHLeafIndex DECODER_1(
         .index(node_0.Nodes[1]),         
         .leaf_index(LeafIndex[1])
     );
-    DecodeBVHLeafIndex DECODER_2(
+    _DecodeBVHLeafIndex DECODER_2(
         .index(node_1.Nodes[0]),         
         .leaf_index(LeafIndex[2])
     );
-    DecodeBVHLeafIndex DECODER_3(
+    _DecodeBVHLeafIndex DECODER_3(
         .index(node_1.Nodes[1]),         
         .leaf_index(LeafIndex[3])
     );
 
-    QueryBVHLeaf QUERY_LEAF_00(
+    _QueryBVHLeaf QUERY_LEAF_00(
         .raw(LeafIndex[0][`BVH_NODE_INDEX_WIDTH-1] ? LeafRawData[0] : LeafRawData[LeafIndex[0]]),
         .valid(~LeafIndex[0][`BVH_NODE_INDEX_WIDTH-1]),
         .offset(offset),
         .leaf(leaf_0[0])
     );
     
-    QueryBVHLeaf QUERY_LEAF_01(
+    _QueryBVHLeaf QUERY_LEAF_01(
         .raw(LeafIndex[1][`BVH_NODE_INDEX_WIDTH-1] ? LeafRawData[0] : LeafRawData[LeafIndex[1]]),
         .valid(~LeafIndex[1][`BVH_NODE_INDEX_WIDTH-1]),
         .offset(offset),
         .leaf(leaf_0[1])
     );    
       
-    QueryBVHLeaf QUERY_LEAF_10(
+    _QueryBVHLeaf QUERY_LEAF_10(
         .raw(LeafIndex[2][`BVH_NODE_INDEX_WIDTH-1] ? LeafRawData[0] : LeafRawData[LeafIndex[2]]),
         .valid(~LeafIndex[2][`BVH_NODE_INDEX_WIDTH-1]),
         .offset(offset),
         .leaf(leaf_1[0])
     );
     
-    QueryBVHLeaf QUERY_LEAF_11(
+    _QueryBVHLeaf QUERY_LEAF_11(
         .raw(LeafIndex[3][`BVH_NODE_INDEX_WIDTH-1] ? LeafRawData[0] : LeafRawData[LeafIndex[3]]),
         .valid(~LeafIndex[3][`BVH_NODE_INDEX_WIDTH-1]),
         .offset(offset),
@@ -479,16 +485,16 @@ module BVHStructure (
 
     generate
         for (genvar i = 0; i < `BVH_AABB_TEST_UNIT_SIZE; i = i + 1) begin : QUERY_PRIM
-            QueryPrimitive QUERY_PRIM_0(   
-                .raw(PrimitiveRawData[prim_index_0 + i]),    
+            _QueryPrimitive QUERY_PRIM_0(   
+                .raw(AABBRawData[prim_index_0 + i]),    
                 .i(prim_index_0 + i),
                 .bound(prim_bound_0),    
                 .offset(offset),    
                 .p(p0[i])
             ); 
 
-            QueryPrimitive QUERY_PRIM_1(   
-                .raw(PrimitiveRawData[prim_index_1 + i]),    
+            _QueryPrimitive QUERY_PRIM_1(   
+                .raw(AABBRawData[prim_index_1 + i]),    
                 .i(prim_index_1 + i),
                 .bound(prim_bound_1),    
                 .offset(offset),    

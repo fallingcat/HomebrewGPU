@@ -18,10 +18,10 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-`include "../Math/Fixed.sv"
-`include "../Math/Fixed3.sv"
-`include "../Math/FixedNorm.sv"
-`include "../Math/FixedNorm3.sv"
+`include "../../../Math/Fixed.sv"
+`include "../../../Math/Fixed3.sv"
+`include "../../../Math/FixedNorm.sv"
+`include "../../../Math/FixedNorm3.sv"
 
 //-------------------------------------------------------------------
 //

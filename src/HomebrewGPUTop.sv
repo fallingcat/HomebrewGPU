@@ -107,13 +107,15 @@ module HomebrewGPUTop(
 	//assign VGA_B = Blank ? 0 : (FinalColor.Channel[2] * 15) >> 8;		
 
     always_comb begin
-        `ifdef GPU_CLK_50
+        `ifdef GPU_CLK_100
+            CLK_GPU <= CLK100MHZ;
+        `elsif GPU_CLK_50
             //CLK_GPU = CLK40MHZ;//CLK50MHZ;
             CLK_GPU <= CLK50MHZ;
         `else
             CLK_GPU <= CLK25MHZ;
             //CLK_GPU <= CLK12MHZ;
-        `endif
+        `endif        
         CLK_MC = CLK_GPU;        
         CLK_FBR = CLK25MHZ;
 

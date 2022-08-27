@@ -35,8 +35,8 @@ module RayCore(
     // inputs...    
     input RasterInputData input_data,        
     input RenderState rs,
-    input BVH_Primitive p0[`BVH_AABB_TEST_UNIT_SIZE],
-    input BVH_Primitive p1[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p0[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p1[`BVH_AABB_TEST_UNIT_SIZE],
     input BVH_Node node_0,    
     input BVH_Node node_1,    
     input BVH_Leaf leaf_0[2],       
@@ -67,7 +67,7 @@ module RayCore(
 		
     // 3 pipeline stages : RAS -> SHDW -> SHDR, the SHDR output will be redirected back to RAS for trflection
     // For example : (RAS -> SHDW -> SHDR) -> (RAS -> SHDW -> SHDR) -> (RAS -> SHDW -> SHDR) -> Frame Buffer for 3 bounces
-    Raster RAS (    
+    Raster RAS(    
         .clk(clk),
         .resetn(resetn),
         .add_input(add_input),
@@ -88,7 +88,7 @@ module RayCore(
         .leaf(leaf_0)
     );
 
-    Shadowing SHDW (
+    Shadowing SHDW(
         .clk(clk),
         .resetn(resetn),
         .add_input(RAS_Valid),
@@ -106,7 +106,7 @@ module RayCore(
         .leaf(leaf_1)    
     );         
 
-    Shader SHDR (
+    Shader SHDR(
         .clk(clk),
         .resetn(resetn),
         .add_input(SHDW_Valid),

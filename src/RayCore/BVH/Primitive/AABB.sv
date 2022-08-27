@@ -18,15 +18,15 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-`include "../Types.sv"
-`include "../Math/Fixed.sv"
-`include "../Math/Fixed3.sv"
-`include "../Math/FixedNorm.sv"
-`include "../Math/FixedNorm3.sv"
+`include "../../../Types.sv"
+`include "../../../Math/Fixed.sv"
+`include "../../../Math/Fixed3.sv"
+`include "../../../Math/FixedNorm.sv"
+`include "../../../Math/FixedNorm3.sv"
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module AABBFindT0T1(    
+module _AABBFindT0T1(    
     input Fixed3 orig,
     input Fixed3 invdir,
     input AABB aabb,
@@ -80,7 +80,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module AABBFindMinTMaxT(
+module _AABBFindMinTMaxT(
     input Fixed t0[3],
     input Fixed t1[3],
     output Fixed min_t,
@@ -156,7 +156,7 @@ endmodule
 //-------------------------------------------------------------------
 // Find the the hit T. 
 //-------------------------------------------------------------------    
-module AABBFindHitT(
+module _AABBFindHitT(
     input Fixed min_t,
     input Fixed max_t,
     input Fixed ray_min_t,
@@ -178,7 +178,7 @@ endmodule
 //-------------------------------------------------------------------
 // Find the the hit point. 
 //-------------------------------------------------------------------    
-module AABBFindHit(
+module _AABBFindHit(
     input `VOXEL_INDEX ray_vi,
     input Fixed ray_min_t,
     input Fixed ray_max_t,
@@ -204,7 +204,7 @@ module AABBFindHit(
         end
     end
 
-    AABBFindHitT A0(min_t, max_t, ray_min_t, ray_max_t, hit_data.T, HitCondition);
+    _AABBFindHitT A0(min_t, max_t, ray_min_t, ray_max_t, hit_data.T, HitCondition);
 endmodule
 //-------------------------------------------------------------------
 // 
@@ -229,7 +229,7 @@ endmodule
 //-------------------------------------------------------------------
 // Find the normal vector of the hit point. 
 //-------------------------------------------------------------------    
-module AABBHit_FindNormal(
+module _AABBHit_FindNormal(
     input Fixed3 dir,
     input b_hit,
     input Fixed t0[3],
@@ -259,106 +259,9 @@ module AABBHit_FindNormal(
     AABBHit_NormalMux   ZN(b_hit && B[4][0] && B[4][1], b_hit && B[5][0] && B[5][1], hit_normal.Dim[2]);       
 endmodule
 //-------------------------------------------------------------------
-//
+// 
 //-------------------------------------------------------------------    
-module AABBHit(
-    input Ray r,
-    input AABB aabb,
-    input RGB8 color,
-    input `VOXEL_INDEX vi,  
-    input SurfaceType st,      
-    output HitData hit_data    
-    );    
-
-    Fixed t0[3];
-    Fixed t1[3];
-    Fixed MinT;
-    Fixed MaxT;
-    
-    AABBFindT0T1 FIND_T0T1(
-        .orig(r.Orig),
-        .invdir(r.InvDir),
-        .aabb(aabb),
-        .t0(t0),
-        .t1(t1)
-    );    
-
-    AABBFindMinTMaxT FIND_MINTMAXT(        
-        .t0(t0),
-        .t1(t1),
-        .min_t(MinT),
-        .max_t(MaxT)        
-    );
-
-    AABBFindHit FIND_HIT(
-        .ray_vi(r.VI),
-        .ray_min_t(r.MinT),
-        .ray_max_t(r.MaxT),
-        .min_t(MinT),
-        .max_t(MaxT),
-        .color(color),
-        .vi(vi),     
-        .st(st),
-        .hit_data(hit_data)
-    );
-
-    AABBHit_FindNormal FIND_NORM(
-        .dir(r.Dir),
-        .b_hit(hit_data.bHit),
-        .t0(t0),
-        .t1(t1),
-        .hit_t(hit_data.T),
-        .hit_normal(hit_data.Normal)
-    );                  
-endmodule
-//-------------------------------------------------------------------
-//
-//-------------------------------------------------------------------    
-module AABBAnyHit(
-    input Ray r,
-    input AABB aabb,
-    input RGB8 color,
-    input `VOXEL_INDEX vi,  
-    input SurfaceType st,      
-    output HitData hit_data    
-    );    
-
-    Fixed t0[3];
-    Fixed t1[3];
-    Fixed MinT;
-    Fixed MaxT;
-    
-    AABBFindT0T1 FIND_T0T1(
-        .orig(r.Orig),
-        .invdir(r.InvDir),
-        .aabb(aabb),
-        .t0(t0),
-        .t1(t1)
-    );    
-
-    AABBFindMinTMaxT FIND_MINTMAXT(        
-        .t0(t0),
-        .t1(t1),
-        .min_t(MinT),
-        .max_t(MaxT)        
-    );
-
-    AABBFindHit FIND_HIT(
-        .ray_vi(r.VI),
-        .ray_min_t(r.MinT),
-        .ray_max_t(r.MaxT),
-        .min_t(MinT),
-        .max_t(MaxT),
-        .color(color),
-        .vi(vi),     
-        .st(st),
-        .hit_data(hit_data)
-    );    
-endmodule
-//-------------------------------------------------------------------
-//
-//-------------------------------------------------------------------    
-module AABBFindTest(
+module _AABBFindTest(
     input Fixed min_t,
     input Fixed max_t,
     output logic hit    
@@ -379,11 +282,107 @@ module AABBFindTest(
         .b(FixedZero()),
         .o(B[1])
     );
-
 endmodule
 
 //-------------------------------------------------------------------
-//
+// Find hit point and get the normal of hit point
+//-------------------------------------------------------------------    
+module AABBHit(
+    input Ray r,
+    input AABB aabb,
+    input RGB8 color,
+    input `VOXEL_INDEX vi,  
+    input SurfaceType st,      
+    output HitData hit_data    
+    );    
+
+    Fixed t0[3];
+    Fixed t1[3];
+    Fixed MinT;
+    Fixed MaxT;
+    
+    _AABBFindT0T1 FIND_T0T1(
+        .orig(r.Orig),
+        .invdir(r.InvDir),
+        .aabb(aabb),
+        .t0(t0),
+        .t1(t1)
+    );    
+
+    _AABBFindMinTMaxT FIND_MINTMAXT(        
+        .t0(t0),
+        .t1(t1),
+        .min_t(MinT),
+        .max_t(MaxT)        
+    );
+
+    _AABBFindHit FIND_HIT(
+        .ray_vi(r.VI),
+        .ray_min_t(r.MinT),
+        .ray_max_t(r.MaxT),
+        .min_t(MinT),
+        .max_t(MaxT),
+        .color(color),
+        .vi(vi),     
+        .st(st),
+        .hit_data(hit_data)
+    );
+
+    _AABBHit_FindNormal FIND_NORM(
+        .dir(r.Dir),
+        .b_hit(hit_data.bHit),
+        .t0(t0),
+        .t1(t1),
+        .hit_t(hit_data.T),
+        .hit_normal(hit_data.Normal)
+    );                  
+endmodule
+//-------------------------------------------------------------------
+// Find any hit
+//-------------------------------------------------------------------    
+module AABBAnyHit(
+    input Ray r,
+    input AABB aabb,
+    input RGB8 color,
+    input `VOXEL_INDEX vi,  
+    input SurfaceType st,      
+    output HitData hit_data    
+    );    
+
+    Fixed t0[3];
+    Fixed t1[3];
+    Fixed MinT;
+    Fixed MaxT;
+    
+    _AABBFindT0T1 FIND_T0T1(
+        .orig(r.Orig),
+        .invdir(r.InvDir),
+        .aabb(aabb),
+        .t0(t0),
+        .t1(t1)
+    );    
+
+    _AABBFindMinTMaxT FIND_MINTMAXT(        
+        .t0(t0),
+        .t1(t1),
+        .min_t(MinT),
+        .max_t(MaxT)        
+    );
+
+    _AABBFindHit FIND_HIT(
+        .ray_vi(r.VI),
+        .ray_min_t(r.MinT),
+        .ray_max_t(r.MaxT),
+        .min_t(MinT),
+        .max_t(MaxT),
+        .color(color),
+        .vi(vi),     
+        .st(st),
+        .hit_data(hit_data)
+    );    
+endmodule
+//-------------------------------------------------------------------
+// Test if a ray hit AABB with infinite length
 //-------------------------------------------------------------------    
 module AABBTest(
     input Fixed3 orig,
@@ -396,7 +395,7 @@ module AABBTest(
     Fixed MinT;
     Fixed MaxT;     
     
-    AABBFindT0T1 FIND_T0T1(
+    _AABBFindT0T1 FIND_T0T1(
         .orig(orig),
         .invdir(invdir),
         .aabb(aabb),
@@ -404,21 +403,21 @@ module AABBTest(
         .t1(t1)
     );    
 
-    AABBFindMinTMaxT FIND_MINTMAXT(        
+    _AABBFindMinTMaxT FIND_MINTMAXT(        
         .t0(t0),
         .t1(t1),
         .min_t(MinT),
         .max_t(MaxT)        
     );
 
-    AABBFindTest FIND_TEST(
+    _AABBFindTest FIND_TEST(
         .min_t(MinT),
         .max_t(MaxT),
         .hit(hit)
     );    
 endmodule
 //-------------------------------------------------------------------
-//
+// Add offset to AABB
 //-------------------------------------------------------------------    
 module OffsetAABB(   
     input AABB aabb,     

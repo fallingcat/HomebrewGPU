@@ -18,11 +18,11 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-`include "../Types.sv"
-`include "../Math/Fixed.sv"
-`include "../Math/Fixed3.sv"
-`include "../Math/FixedNorm.sv"
-`include "../Math/FixedNorm3.sv"
+`include "../../Types.sv"
+`include "../../Math/Fixed.sv"
+`include "../../Math/Fixed3.sv"
+`include "../../Math/FixedNorm.sv"
+`include "../../Math/FixedNorm3.sv"
 
 //-------------------------------------------------------------------
 //
@@ -104,7 +104,7 @@ module ProcessNodeLeaf (
 endmodule
 
 //-------------------------------------------------------------------
-//
+// BVH traversal unit.
 //-------------------------------------------------------------------    
 module BVHUnit (    
     input clk,	    
