@@ -179,28 +179,28 @@ endmodule
 // Find the the hit point. 
 //-------------------------------------------------------------------    
 module _AABBFindHit(
-    input `VOXEL_INDEX ray_vi,
+    input `PRIMITIVE_INDEX ray_vi,
     input Fixed ray_min_t,
     input Fixed ray_max_t,
     input Fixed min_t,
     input Fixed max_t,
     input RGB8 color,
-    input `VOXEL_INDEX vi,   
+    input `PRIMITIVE_INDEX pi,   
     input SurfaceType st,
     output HitData hit_data    
     );   
     logic HitCondition;
 
     always_comb begin        
-        if (vi[`VOXEL_INDEX_WIDTH - 1] == 0 && ray_vi != vi && HitCondition) begin
+        if (pi[`PRIMITIVE_INDEX_WIDTH - 1] == 0 && ray_vi != pi && HitCondition) begin
             hit_data.bHit <= 1;
-            hit_data.VI <= vi; 
+            hit_data.PI <= pi; 
             hit_data.Color <= color;     
             hit_data.SurfaceType <= st;                
         end                
         else begin
             hit_data.bHit <= 0;             
-            hit_data.VI <= `NULL_VOXEL_INDEX;                            
+            hit_data.PI <= `NULL_PRIMITIVE_INDEX;                            
         end
     end
 
@@ -291,7 +291,7 @@ module AABBHit(
     input Ray r,
     input AABB aabb,
     input RGB8 color,
-    input `VOXEL_INDEX vi,  
+    input `PRIMITIVE_INDEX pi,  
     input SurfaceType st,      
     output HitData hit_data    
     );    
@@ -317,13 +317,13 @@ module AABBHit(
     );
 
     _AABBFindHit FIND_HIT(
-        .ray_vi(r.VI),
+        .ray_vi(r.PI),
         .ray_min_t(r.MinT),
         .ray_max_t(r.MaxT),
         .min_t(MinT),
         .max_t(MaxT),
         .color(color),
-        .vi(vi),     
+        .pi(pi),     
         .st(st),
         .hit_data(hit_data)
     );
@@ -344,7 +344,7 @@ module AABBAnyHit(
     input Ray r,
     input AABB aabb,
     input RGB8 color,
-    input `VOXEL_INDEX vi,  
+    input `PRIMITIVE_INDEX pi,  
     input SurfaceType st,      
     output HitData hit_data    
     );    
@@ -370,13 +370,13 @@ module AABBAnyHit(
     );
 
     _AABBFindHit FIND_HIT(
-        .ray_vi(r.VI),
+        .ray_vi(r.PI),
         .ray_min_t(r.MinT),
         .ray_max_t(r.MaxT),
         .min_t(MinT),
         .max_t(MaxT),
         .color(color),
-        .vi(vi),     
+        .pi(pi),     
         .st(st),
         .hit_data(hit_data)
     );    

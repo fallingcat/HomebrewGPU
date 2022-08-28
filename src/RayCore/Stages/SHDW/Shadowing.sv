@@ -39,7 +39,7 @@ module ShadowingCombineOutput (
             out.x <= input_data.x;
             out.y <= input_data.y;                    
             out.ViewDir <= input_data.ViewDir;
-            out.VI <= input_data.VI;                    
+            out.PI <= input_data.PI;                    
             out.HitPos <= input_data.HitPos;                    
             out.Color <= input_data.Color;
             out.Normal <= input_data.Normal;
@@ -132,7 +132,7 @@ module ShadowingUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function QueueExtraPrimitives();
+    function QueueGlobalPrimitives();
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_MODEL_RAW_DATA_SIZE;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 3;		    
         PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
@@ -175,7 +175,7 @@ module ShadowingUnit (
                         CurrentInput = Input;                  
                         fifo_full <= 0;
 
-                        FinalHitData.bHit <= 0;							                        
+                        FinalHitData.bHit <= 0;
                             
                         PrimitiveFIFO.Top = 0;			
                         PrimitiveFIFO.Bottom = 0;			
@@ -184,11 +184,13 @@ module ShadowingUnit (
                         RealEndPrimitiveIndex = 0;             
                         
                         if (CurrentInput.SurfaceType == ST_None) begin    
+                            // Shadowing is done since the fragment is not a primitive.
                             NextState <= SHDWS_Done;                            
                         end
-                        else begin                           
+                        else begin       
+                            // Init BVH traversal
                             BU_Strobe <= 1;                                                                        
-                            QueueExtraPrimitives();                                                            
+                            QueueGlobalPrimitives();                                                            
                             NextState <= SHDWS_Rasterize;          
                         end                                                                                                
                     end                    
@@ -198,22 +200,27 @@ module ShadowingUnit (
                     valid <= 0;                    
                     BU_Strobe <= 0;     
 
+                    // Queue possible hit primitives.  
                     QueuePrimitiveGroup();               
                                         
                     if (PHitData.bHit) begin
+                        // If there is any hit, shadowing is done.
                         FinalHitData.bHit <= PHitData.bHit;
                         NextState <= SHDWS_Done;  
                     end			                 
                     else begin
                         if (StartPrimitiveIndex != EndPrimitiveIndex) begin			                        
+                            // Process next batch of primitives.
                             NextPrimitiveData();						                                            
                         end
                         else begin
                             if (PrimitiveFIFO.Top != PrimitiveFIFO.Bottom) begin
+                                // Dequeue possible hit primitives for any hit test.
                                 DequeuePrimitiveGroup();                                 
                             end
                             else begin
                                 if (BU_Finished) begin    
+                                    // The fragment is not in shadow
                                     NextState <= SHDWS_Done;                                                                                             
                                 end                            
                             end                    
@@ -237,6 +244,7 @@ module ShadowingUnit (
         end        
     end            
     
+    // Traverse BVH tree and find the possible hit primitives 
     BVHUnit BU(    
         .clk(clk),	 
         .resetn(resetn),
@@ -255,12 +263,14 @@ module ShadowingUnit (
         .finished(BU_Finished)        
     );
     
+    // Find any hit from all possible primitives
     RayUnit_FindAnyHit RU(            
 		.r(CurrentInput.ShadowingRay), 		
 		.p(p),
 		.out_hit(PHitData.bHit)		
 	);   
 
+    // Setup output for next stage
     ShadowingCombineOutput CO ( 
         .clk(clk),
         .strobe(NextState == SHDWS_Done),         
@@ -351,6 +361,7 @@ module PassOverShadowingUnit (
         end        
     end            
     
+    // Setup output for next stage
     ShadowingCombineOutput CO ( 
         .clk(clk),
         .strobe(NextState == SHDWS_Done),         

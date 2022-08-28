@@ -61,9 +61,9 @@
 `define SCREEN_COORD_WIDTH  		        10
 `define SCREEN_COORD			            [`SCREEN_COORD_WIDTH-1:0]
 
-`define VOXEL_INDEX_WIDTH		            16
-`define VOXEL_INDEX				            [`VOXEL_INDEX_WIDTH-1:0]
-`define NULL_VOXEL_INDEX                    {`VOXEL_INDEX_WIDTH{1'b1}}
+`define PRIMITIVE_INDEX_WIDTH		        16
+`define PRIMITIVE_INDEX				        [`PRIMITIVE_INDEX_WIDTH-1:0]
+`define NULL_PRIMITIVE_INDEX                {`PRIMITIVE_INDEX_WIDTH{1'b1}}
 
 // DDR2 with 27bits address == 256MB
 `define FRAMEBUFFER_ADDR_0                  27'h000_0000 //FB0 (320x240x32b) 0x00000 ~ 0x26000
@@ -110,7 +110,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 // Configuration >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // RayCore
 //`define IMPLEMENT_SHADOWING                 1
-`define IMPLEMENT_REFLECTION                1
+//`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
 
 // BVH ---------------------------------------------------------------------
@@ -161,6 +161,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_MODEL_RAW_DATA_SIZE             207
 `define BVH_NODE_RAW_DATA_SIZE              20
 `define BVH_LEAF_RAW_DATA_SIZE              20
+`define BVH_GLOBAL_PRIMITIVE_START_IDX      `BVH_MODEL_RAW_DATA_SIZE
 
 //`define NO_BVH_MODEL                        1
 `define BVH_LEAF_AABB_TEST                  1
@@ -243,10 +244,15 @@ typedef struct {
     logic [7:0] Channel[4];            
 } RGBA8;
 
+typedef enum logic [3:0] {
+   MRUT_FrameBuffer         = 4'd0, 
+   MRUT_BVHStructure        = 4'd1   
+} MemoryRequestUnitType;
+
 typedef struct {
     logic [ADDR_WIDTH-1:0] Address;
     logic [2:0] BlockCount; // 1 ~ 4 : Write size = 128 bits * BlockCount
-    logic [7:0] ID;
+    MemoryRequestUnitType ID;
 } MemoryReadTask;
 
 typedef struct {
@@ -257,7 +263,7 @@ typedef struct {
 
 typedef struct {
     logic [`MC_CACHE_DATA_WIDTH-1:0] Data[`MC_CACHE_BLOCK_SIZE];
-    logic [7:0] ID;    
+    MemoryRequestUnitType ID;    
     logic Valid;
 } MemoryReadData;
 
@@ -265,7 +271,7 @@ typedef struct {
     logic ReadStrobe;        
     logic [ADDR_WIDTH-1:0] ReadAddress;    
     logic [2:0] BlockCount; // 1 ~ 4 : Write size = 128 bits * BlockCount
-    logic [7:0] ReadID;
+    MemoryRequestUnitType ReadID;
 } MemoryReadRequest;
 
 typedef struct {
@@ -366,7 +372,7 @@ typedef enum logic [1:0] {
 } RayType;
 
 typedef struct {
-    logic `VOXEL_INDEX VI;    
+    logic `PRIMITIVE_INDEX PI;    
     Fixed3 Orig;
     Fixed3 Dir;
     Fixed3 InvDir;
@@ -392,7 +398,7 @@ typedef struct {
     Fixed T;
     FixedNorm3 Normal;  
     RGB8 Color;    
-    logic `VOXEL_INDEX VI;      
+    logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
 } HitData;
 
@@ -416,21 +422,21 @@ typedef struct {
 typedef struct {
     AABB Aabb;      
     RGB8 Color;      
-    logic `VOXEL_INDEX VI;      
+    logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
 } BVH_Primitive_AABB;
 
 typedef struct {
     Sphere Sphere;      
     RGB8 Color;      
-    logic `VOXEL_INDEX VI;      
+    logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
 } BVH_Primitive_Sphere;
 
 typedef struct {
     Triangle Triangle;      
     RGB8 Color;      
-    logic `VOXEL_INDEX VI;      
+    logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
 } BVH_Primitive_Triangle;
 
@@ -483,7 +489,7 @@ typedef struct {
     logic `BOUNCE_LEVEL BounceLevel;
     logic `SCREEN_COORD x, y;
     Fixed3 ViewDir;    
-    logic `VOXEL_INDEX VI;    
+    logic `PRIMITIVE_INDEX PI;    
     Fixed3 HitPos;             
     RGB8 Color;
     FixedNorm3 Normal;    
@@ -504,7 +510,7 @@ typedef struct {
     logic `BOUNCE_LEVEL BounceLevel;
     logic `SCREEN_COORD x, y; 
     Fixed3 ViewDir;       
-    logic `VOXEL_INDEX VI;   
+    logic `PRIMITIVE_INDEX PI;   
     Fixed3 HitPos; 
     RGB8 Color;
     FixedNorm3 Normal;        

@@ -54,12 +54,14 @@ endmodule
 // Find the closest Hit. 
 // Compare the all HitData.T and find the closest HitData which has smallest T.
 //-------------------------------------------------------------------    
-module FindClosestHit( 
+module FindClosestHit#(
+    parameter WIDTH = `BVH_AABB_TEST_UNIT_SIZE
+    ) ( 
     input Ray r,    
-    input HitData p_hit_data[`BVH_AABB_TEST_UNIT_SIZE],	
+    input HitData p_hit_data[WIDTH],	
     output HitData final_hit_data		
     );             
-    HitData HitData[`BVH_AABB_TEST_UNIT_SIZE+1];
+    HitData HitData[WIDTH+1];
 
     always_comb begin        
         HitData[0].bHit <= 0;
@@ -67,7 +69,7 @@ module FindClosestHit(
     end  
 
     generate
-        for (genvar i = 0; i < `BVH_AABB_TEST_UNIT_SIZE; i = i + 1) begin : MIN_HIT
+        for (genvar i = 0; i < WIDTH; i = i + 1) begin : MIN_HIT
             MinHitMux MIN_HIT(
                 .h1(HitData[i]),
                 .h2(p_hit_data[i]),
@@ -76,7 +78,7 @@ module FindClosestHit(
         end
     endgenerate  
 
-    assign final_hit_data = HitData[`BVH_AABB_TEST_UNIT_SIZE];               
+    assign final_hit_data = HitData[WIDTH];               
 endmodule
 //-------------------------------------------------------------------
 // Find the closest Hit. 
@@ -94,19 +96,21 @@ endmodule
 // Find any Hit. 
 // Compare the all HitData.T and find the hit if any HitData is hit.
 //-------------------------------------------------------------------    
-module FindAnyHit(     
-    input HitData p_hit_data[`BVH_AABB_TEST_UNIT_SIZE],	
+module FindAnyHit#(
+    parameter WIDTH = `BVH_AABB_TEST_UNIT_SIZE
+    ) (      
+    input HitData p_hit_data[WIDTH],	
     output logic out_hit		
     );          
 
-    logic Hit[`BVH_AABB_TEST_UNIT_SIZE+1];
+    logic Hit[WIDTH+1];
 
     always_comb begin        
         Hit[0] <= 0;        
     end  
 
     generate
-        for (genvar i = 0; i < `BVH_AABB_TEST_UNIT_SIZE; i = i + 1) begin : HITMUX
+        for (genvar i = 0; i < WIDTH; i = i + 1) begin : HITMUX
             HitMux HITMUX(
                 .h1(Hit[i]),
                 .h2(p_hit_data[i].bHit),
@@ -116,7 +120,7 @@ module FindAnyHit(
         end
     endgenerate 
     
-    assign out_hit = Hit[`BVH_AABB_TEST_UNIT_SIZE];
+    assign out_hit = Hit[WIDTH];
 endmodule
 //-------------------------------------------------------------------
 // Find the closest hit of primitives against the ray and compute the
@@ -136,7 +140,7 @@ module RayUnit_FindClosestHit (
         for (genvar i = 0; i < `BVH_AABB_TEST_UNIT_SIZE; i = i + 1) begin : AABB_HIT
             AABBHit AABB_HIT(
                 .r(r),
-                .vi(p[i].VI),
+                .pi(p[i].PI),
                 .st(p[i].SurfaceType),
                 .aabb(p[i].Aabb),
                 .color(p[i].Color),
@@ -148,8 +152,8 @@ module RayUnit_FindClosestHit (
     //TODO : Sphere test 
     //TODO : Triangle test
 
-    // Process 4 HitData and output the FinalHitData
-    FindClosestHit PRP(
+    // Process all HitData and output the FinalHitData
+    FindClosestHit#(`BVH_AABB_TEST_UNIT_SIZE) PRP(
         .r(r),
         .p_hit_data(PHitData),	
         .final_hit_data(hit_data)		
@@ -173,7 +177,7 @@ module RayUnit_FindClosestHitNoNormal (
         for (genvar i = 0; i < `BVH_AABB_TEST_UNIT_SIZE; i = i + 1) begin : AABB_HIT
             AABBAnyHit AABB_HIT(
                 .r(r),
-                .vi(p[i].VI),
+                .pi(p[i].PI),
                 .st(p[i].SurfaceType),
                 .aabb(p[i].Aabb),
                 .color(p[i].Color),
@@ -185,8 +189,8 @@ module RayUnit_FindClosestHitNoNormal (
     //TODO : Sphere test 
     //TODO : Triangle test
 
-    // Process 4 HitData and output the FinalHitData
-    FindClosestHit PRP(
+    // Process all HitData and output the FinalHitData
+    FindClosestHit#(`BVH_AABB_TEST_UNIT_SIZE) PRP(
         .r(r),
         .p_hit_data(PHitData),	
         .final_hit_data(hit_data)		
@@ -209,7 +213,7 @@ module RayUnit_FindAnyHit (
         for (genvar i = 0; i < `BVH_AABB_TEST_UNIT_SIZE; i = i + 1) begin : AABB_HIT
             AABBAnyHit AABB_HIT(
                 .r(r),
-                .vi(p[i].VI),
+                .pi(p[i].PI),
                 .st(p[i].SurfaceType),
                 .aabb(p[i].Aabb),
                 .color(p[i].Color),
@@ -221,7 +225,7 @@ module RayUnit_FindAnyHit (
     //TODO : Sphere test 
     //TODO : Triangle test
 
-    // Process 4 HitData and output the FinalHitData
+    // Process all HitData and output the FinalHitData
     FindAnyHit PRP(        
         .p_hit_data(PHitData),	
         .out_hit(out_hit)		

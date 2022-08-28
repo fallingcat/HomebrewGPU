@@ -23,7 +23,7 @@
 `include "../Math/FixedNorm.sv"
 `include "../Math/FixedNorm3.sv"
     
-module RasterRayDir(
+module _RasterRayDir(
     input logic `SCREEN_COORD x,
     input logic `SCREEN_COORD y,
     input logic `SCREEN_COORD vp_h,
@@ -132,7 +132,7 @@ module ThreadGenerator#(
                             out.RayCoreInput[CurrentRayCore].RasterRay.MinT <= _Fixed(0);
                             out.RayCoreInput[CurrentRayCore].RasterRay.MaxT <= _Fixed(1000);                                                  
                             out.RayCoreInput[CurrentRayCore].RasterRay.Orig <= rs.Camera.Pos;
-                            out.RayCoreInput[CurrentRayCore].RasterRay.VI <= `NULL_VOXEL_INDEX; // means the raster ray is from camera                          
+                            out.RayCoreInput[CurrentRayCore].RasterRay.PI <= `NULL_PRIMITIVE_INDEX; // means the raster ray is from camera                          
 
                             CurrentRayCore = CurrentRayCore + 1;
                             if (CurrentRayCore >= `RAY_CORE_SIZE) begin
@@ -157,9 +157,10 @@ module ThreadGenerator#(
 		end
 	end	
 
+    // Compute direction of generated raster rays. 
     generate
         for (genvar i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin : RAS_DIR
-            RasterRayDir RAS_DIR(
+            _RasterRayDir RAS_DIR(
                 .x(out.RayCoreInput[i].x),
                 .y(out.RayCoreInput[i].y),
                 .vp_h(rs.ViewportHeight),

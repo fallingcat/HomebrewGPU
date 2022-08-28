@@ -31,7 +31,7 @@ module SphereHit(
     input Ray r,
     input Sphere sphere,
     input RGB8 color,
-    input `VOXEL_INDEX vi,  
+    input `PRIMITIVE_INDEX pi,  
     input SurfaceType st,      
     output HitData hit_data    
     );    
@@ -43,7 +43,7 @@ module SphereAnyHit(
     input Ray r,
     input Sphere sphere,
     input RGB8 color,
-    input `VOXEL_INDEX vi,  
+    input `PRIMITIVE_INDEX pi,  
     input SurfaceType st,      
     output HitData hit_data    
     );    

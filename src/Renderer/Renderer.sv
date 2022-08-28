@@ -256,6 +256,7 @@ module Renderer(
 		end
 	end		  	
 	
+	// Process render state changes.
 	RenderState RS(
 		.clk(clk),	
 		.resetn(resetn),
@@ -271,6 +272,7 @@ module Renderer(
 		.valid(RS_Valid)		
 	);
 	
+	// Emit fragment threads for ray cores to process.
 	ThreadGenerator#(1) TG(
     	.clk(clk),
 		.resetn(resetn),	    	

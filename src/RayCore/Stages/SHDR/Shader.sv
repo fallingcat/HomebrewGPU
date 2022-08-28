@@ -103,7 +103,7 @@ module Texturing (
     input RGB8 color,
     input Fixed3 pos,
     input logic hit,
-    input logic `VOXEL_INDEX vi,
+    input logic `PRIMITIVE_INDEX pi,
     output RGB8 out
     );
     logic [27:0] PX, PZ;
@@ -111,7 +111,7 @@ module Texturing (
     always_ff @(posedge clk) begin    
         if (strobe) begin
             out <= color;        
-            if (hit && vi == `BVH_MODEL_RAW_DATA_SIZE) begin
+            if (hit && pi == `BVH_MODEL_RAW_DATA_SIZE) begin
                 PX = pos.Dim[0].Value >> (`FIXED_FRAC_WIDTH + 4);
                 PZ = pos.Dim[2].Value >> (`FIXED_FRAC_WIDTH + 4);
                 if (PX[0] ^ PZ[0]) begin                                    
@@ -407,19 +407,19 @@ module ShaderCombineRefOutput (
             out.LastColor <= color;
             out.BounceLevel <= input_data.BounceLevel + 1;   
             out.RasterRay.Orig <= input_data.HitPos;                        
-            out.RasterRay.VI <= input_data.VI;
+            out.RasterRay.PI <= input_data.PI;
             
             case (input_data.SurfaceType)              
                 (ST_Metal): begin
                     out.RasterRay.MinT <= _Fixed(0);
                     out.RasterRay.MaxT <= _Fixed(1000);         
-                    //out.RasterRay.VI <= input_data.VI;
+                    //out.RasterRay.PI <= input_data.PI;
                 end
 
                 (ST_Dielectric): begin
                     out.RasterRay.MinT <= _Fixeds(2457); // 0.15f
                     out.RasterRay.MaxT <= _Fixed(1000);                                                                      
-                    //out.RasterRay.VI <= `NULL_VOXEL_INDEX;
+                    //out.RasterRay.PI <= `NULL_PRIMITIVE_INDEX;
                 end
             endcase         
         end
@@ -664,7 +664,7 @@ module Shader(
         end        
     end   
 
-    // Compute diffuse of current ray
+    // Compute diffuse of fragment
     _FinalDiffuse DIFFUSE(        
         // Light direction
         .l(rs.Light[0].NormDir), 
@@ -678,7 +678,7 @@ module Shader(
         .o(Diffuse)
     );
     
-    // Compute color of current ray
+    // Compute color of fragment
     _ComputeCurrentColor CURRENT_COLOR(
         // Surface type of fragment
         .surface(CurrentInput.SurfaceType),
@@ -690,7 +690,7 @@ module Shader(
         .o(CurrentColor)
     );    
 
-    // Combine the color of current and last rays
+    // Combine the fragment color of current and last rays
     RGB8_Accu COMBINE_COLOR(
         // The result color of previous rays
         .c0(CurrentInput.LastColor),

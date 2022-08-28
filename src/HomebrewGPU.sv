@@ -178,6 +178,6 @@ module HomebrewGPU(
         .ddr2_cs_n(ddr2_cs_n),
         .ddr2_dm(ddr2_dm),
         .ddr2_odt(ddr2_odt)
-        );
+    );
     
 endmodule

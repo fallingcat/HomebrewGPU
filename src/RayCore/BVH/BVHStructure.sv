@@ -66,30 +66,30 @@ endmodule
 module _QueryPrimitiveSurafceType (   
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] i,
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] bound,    
-    output logic `VOXEL_INDEX vi,      
+    output logic `PRIMITIVE_INDEX pi,      
     output SurfaceType out
     );
 
     always_comb begin
         if (i < bound && i < `BVH_AABB_RAW_DATA_SIZE) begin
-            vi <=  i;
+            pi <=  i;
         end
         else begin
-            vi <= `NULL_VOXEL_INDEX;  
+            pi <= `NULL_PRIMITIVE_INDEX;  
         end
 
     `ifdef IMPLEMENT_REFRACTION        
-        if (i == (`BVH_MODEL_RAW_DATA_SIZE + 1)) begin                                
+        if (i == (`BVH_GLOBAL_PRIMITIVE_START_IDX + 1)) begin                                
             out <= ST_Dielectric;            
         end 
-        else if (i == (`BVH_MODEL_RAW_DATA_SIZE + 2)) begin                    
+        else if (i == (`BVH_GLOBAL_PRIMITIVE_START_IDX + 2)) begin                    
             out <= ST_Metal;
         end 
         else begin
             out <= ST_Lambertian;
         end                
     `elsif IMPLEMENT_REFLECTION
-        if (i >= (`BVH_MODEL_RAW_DATA_SIZE + 1)) begin                    
+        if (i >= (`BVH_GLOBAL_PRIMITIVE_START_IDX + 1)) begin                    
             out <= ST_Metal;            
         end     
         else begin
@@ -150,7 +150,7 @@ module _QueryPrimitive (
     _QueryPrimitiveSurafceType QUERY_ST(
         .i(i),
         .bound(bound),
-        .vi(p.VI),
+        .pi(p.PI),
         .out(p.SurfaceType)
     );
 
@@ -304,14 +304,14 @@ module BVHStructure (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function AddExtraPrimitives();
+    function SetupGlobalPrimitives();
         // Ground ----
         Scale[0] = _Fixed(256);
         Scale[1] = _Fixed(-256);        
 
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][151:120] = `FIXED_ZERO;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][119:88]  = Scale[1].Value;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][87:56]   = `FIXED_ZERO;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX][151:120] = `FIXED_ZERO;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX][119:88]  = Scale[1].Value;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX][87:56]   = `FIXED_ZERO;
         
         //`ifdef TEST_RAY_CORE
         //    Scale = _Fixed(2);
@@ -319,37 +319,37 @@ module BVHStructure (
             //Scale[0] = _Fixed(256);
         //`endif
         
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][55:24]   = Scale[0].Value;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX][55:24]   = Scale[0].Value;
 
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][23:16]   = 100;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][15:8]    = 225;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE][7:0]     = 100;	        
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX][23:16]   = 100;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX][15:8]    = 225;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX][7:0]     = 100;	        
 
         Scale[0] = _Fixed(10);        
         Scale[1] = _Fixed(13);        
 
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][151:120]     = `FIXED_ZERO;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][119:88]      = Scale[1].Value;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][87:56]       = `FIXED_ZERO;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 1][151:120]     = `FIXED_ZERO;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 1][119:88]      = Scale[1].Value;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 1][87:56]       = `FIXED_ZERO;
         
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][55:24]       = Scale[0].Value;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 1][55:24]       = Scale[0].Value;
         
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][23:16]       = 255;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][15:8]        = 255;//155;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 1][7:0]         = 145;//155;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 1][23:16]       = 255;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 1][15:8]        = 255;//155;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 1][7:0]         = 145;//155;
 
         Scale[0] = _Fixed(20);        
         Scale[1] = _Fixed(60);                                 
 
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][151:120]     = `FIXED_ZERO;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][119:88]      = Scale[0].Value;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][87:56]       = Scale[1].Value;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 2][151:120]     = `FIXED_ZERO;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 2][119:88]      = Scale[0].Value;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 2][87:56]       = Scale[1].Value;
         
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][55:24]       = Scale[0].Value;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 2][55:24]       = Scale[0].Value;
 
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][23:16]       = 255;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][15:8]        = 100;
-        AABBRawData[`BVH_MODEL_RAW_DATA_SIZE + 2][7:0]         = 125;	  	        
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 2][23:16]       = 255;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 2][15:8]        = 100;
+        AABBRawData[`BVH_GLOBAL_PRIMITIVE_START_IDX + 2][7:0]         = 125;	  	        
 
         /*
         // ReflectiveBox ----
@@ -390,7 +390,7 @@ module BVHStructure (
         $readmemh(`BVH_LEAVES_PATH, LeafRawData);	        
 
         $readmemh(`BVH_PRIMITIVE_PATH, AABBRawData);
-        AddExtraPrimitives();
+        SetupGlobalPrimitives();
 	end		
 
     /*

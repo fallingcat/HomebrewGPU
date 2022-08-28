@@ -68,19 +68,20 @@ module RastaerRayGenerator(
             ref_fifo_full <= 0;  
 			NextState <= RGS_Init;
 		end
-		else begin			       
-            // If FIFO is not full       
+		else begin			                   
             if (add_input) begin
+                // If FIFO is not full       
                 if (!fifo_full) begin                                    
-                    // Add one ray into ray FIFO                
+                    // Add one ray into FIFO                
                     Input = input_data;                                
                     fifo_full = 1;
                 end               
             end        
 
             if (add_ref_input) begin
+                // If FIFO is not full 
                 if (!ref_fifo_full) begin                                    
-                    // Add one reflection ray into ray FIFO                
+                    // Add one reflection/refraction ray into FIFO                
                     RefInput = ref_input_data;                                
                     ref_fifo_full = 1;
                 end               
@@ -131,6 +132,7 @@ module RastaerRayGenerator(
 		end
 	end	
 
+    // Compute inverse direction of ray
     Fixed3_Inv_V3 DIR_INV(
 		.clk(clk),
         .resetn(resetn),

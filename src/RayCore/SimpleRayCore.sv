@@ -39,7 +39,7 @@ module SimpleCombineOutput (
             out.x <= input_data.x;
             out.y <= input_data.y;                                 
             out.bHit <= hit_data.bHit;                                                            
-            out.VI <= hit_data.VI;            
+            out.PI <= hit_data.PI;            
         end        
     end
 endmodule
@@ -217,7 +217,7 @@ module SimpleRasterUnit (
         .color(FinalHitData.Color),
         .pos(out.HitPos),
         .hit(FinalHitData.bHit),
-        .vi(FinalHitData.VI),
+        .pi(FinalHitData.PI),
         .out(out.Color)
     ); 
 endmodule
@@ -299,7 +299,7 @@ module SimpleShadowingCombineOutput (
             out.y <= input_data.y;                    
             //out.ViewDir <= input_data.ViewDir;
             out.bHit <= input_data.bHit;                    
-            //out.VI <= input_data.VI;                    
+            //out.PI <= input_data.PI;                    
             //out.HitPos <= input_data.HitPos;                    
             out.Color <= input_data.Color;
             //out.Normal <= input_data.Normal;

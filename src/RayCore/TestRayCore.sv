@@ -42,7 +42,7 @@ module TestCombineOutput (
             out.x <= input_data.x;
             out.y <= input_data.y;                                 
             out.bHit <= hit_data.bHit;                                                            
-            out.VI <= hit_data.VI;
+            out.PI <= hit_data.PI;
             //out.Color <= hit_data.Color;
             out.Normal <= hit_data.Normal;
             //out.SurfaceType <= hit_data.SurfaceType;
@@ -51,7 +51,7 @@ module TestCombineOutput (
             out.ShadowingRay.InvDir <= light_invdir;
             out.ShadowingRay.MinT <= _Fixed(0);
             out.ShadowingRay.MaxT <= _Fixed(-1);                                                      
-            out.ShadowingRay.VI <= hit_data.VI;            
+            out.ShadowingRay.PI <= hit_data.PI;            
         end        
     end
 endmodule
@@ -278,7 +278,7 @@ module TestRasterUnit (
         .color(FinalHitData.Color),
         .pos(out.HitPos),
         .hit(FinalHitData.bHit),
-        .vi(FinalHitData.VI),
+        .pi(FinalHitData.PI),
         .out(out.Color)
     );
  
@@ -536,7 +536,7 @@ module TestShadowingCombineOutput (
             out.y <= input_data.y;                    
             //out.ViewDir <= input_data.ViewDir;
             out.bHit <= input_data.bHit;                    
-            //out.VI <= input_data.VI;                    
+            //out.PI <= input_data.PI;                    
             //out.HitPos <= input_data.HitPos;                    
             out.Color <= input_data.Color;
             out.Normal <= input_data.Normal;

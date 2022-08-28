@@ -27,13 +27,13 @@
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module Texture (
+module _Texturing (
     input clk,    
     input strobe,
     input RGB8 color,
     input Fixed3 pos,
     input logic hit,
-    input logic `VOXEL_INDEX vi,
+    input logic `PRIMITIVE_INDEX pi,
     output RGB8 out
     );
     logic [27:0] PX, PZ;
@@ -41,7 +41,7 @@ module Texture (
     always_ff @(posedge clk) begin    
         if (strobe) begin
             out <= color;        
-            if (hit && vi == `BVH_MODEL_RAW_DATA_SIZE) begin
+            if (hit && pi == `BVH_MODEL_RAW_DATA_SIZE) begin
                 PX = pos.Dim[0].Value >> (`FIXED_FRAC_WIDTH + 4);
                 PZ = pos.Dim[2].Value >> (`FIXED_FRAC_WIDTH + 4);
                 if (PX[0] ^ PZ[0]) begin                                    
@@ -99,7 +99,7 @@ module RasterCombineOutput (
             out.ViewDir <= input_data.RasterRay.Dir;    
             out.x <= input_data.x;
             out.y <= input_data.y;                                             
-            out.VI <= hit_data.VI;
+            out.PI <= hit_data.PI;
             out.Normal <= hit_data.Normal;
             out.SurfaceType <= hit_data.SurfaceType;
             out.ShadowingRay.Orig <= out.HitPos;
@@ -107,7 +107,7 @@ module RasterCombineOutput (
             out.ShadowingRay.InvDir <= light_invdir;                                
             out.ShadowingRay.MinT <= _Fixed(0);
             out.ShadowingRay.MaxT <= _Fixed(-1);                                                      
-            out.ShadowingRay.VI <= hit_data.VI;            
+            out.ShadowingRay.PI <= hit_data.PI;            
         end        
     end
 endmodule
@@ -197,8 +197,8 @@ module RasterUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function QueueExtraPrimitives();
-        PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_MODEL_RAW_DATA_SIZE;
+    function QueueGlobalPrimitives();
+        PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_GLOBAL_PRIMITIVE_START_IDX;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 3;		    
         PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
     endfunction    
@@ -241,13 +241,14 @@ module RasterUnit (
                         fifo_full <= 0;
                         ResetFinalHitData <= 1;
 
+                        // Init BVH traversal
                         PrimitiveFIFO.Top = 0;			
                         PrimitiveFIFO.Bottom = 0;			
                         StartPrimitiveIndex = 0;
                         EndPrimitiveIndex = 0;             
                         RealEndPrimitiveIndex = 0;           
                         BU_Strobe <= 1;                                                                    
-                        QueueExtraPrimitives();    
+                        QueueGlobalPrimitives();    
                         NextState <= RASTS_Rasterize;                                                   
                     end                    
                 end   
@@ -257,17 +258,21 @@ module RasterUnit (
                     valid <= 0;                    
                     BU_Strobe <= 0;       
 
+                    // Queue possible hit primitives.  
                     QueuePrimitiveGroup();
                     
                     if (StartPrimitiveIndex != EndPrimitiveIndex) begin			                        
+                        // Process next batch of primitives.
                         NextPrimitiveData();						                                            
                     end
                     else begin
                         if (PrimitiveFIFO.Top != PrimitiveFIFO.Bottom) begin
+                            // Dequeue possible hit primitives for closest hit test.
                             DequeuePrimitiveGroup();                                                    
                         end
                         else begin
-                            if (BU_Finished) begin                                                                
+                            if (BU_Finished) begin          
+                                // All possible hit primitives are processed.
                                 NextState <= RASTS_Done;
                             end                            
                         end                    
@@ -290,6 +295,7 @@ module RasterUnit (
         end        
     end     
     
+    // Traverse BVH tree and find the possible hit primitives 
     BVHUnit BU(    
         .clk(clk),	 
         .resetn(resetn),
@@ -308,12 +314,14 @@ module RasterUnit (
         .finished(BU_Finished)        
     );
     
+    // Find the closest hit point from all possible primitives
     RayUnit_FindClosestHit RU(
 		.r(CurrentInput.RasterRay), 		
 		.p(p),
 		.hit_data(PHitData)		
 	);    
 
+    // Setup HitData for the closest hit
     SetupFinalHitData SETUPHITDATA( 
         .clk(clk),	         
         .reset(ResetFinalHitData),        
@@ -325,6 +333,7 @@ module RasterUnit (
     Fixed3_Mul A1(FinalHitData.T, CurrentInput.RasterRay.Dir, D);
     Fixed3_Add A2(CurrentInput.RasterRay.Orig, D, out.HitPos);            
 
+    // Prepare the output data for next stage
     RasterCombineOutput CO (      
         .clk(clk),
         .strobe(NextState == RASTS_Done),
@@ -335,13 +344,14 @@ module RasterUnit (
         .out(out)
     );
     
-    Texture TX(
+    // Texturing for this fragment if it is a fragment from ground primitive
+    _Texturing TX(
         .clk(clk),
         .strobe(NextState == RASTS_Done),
         .color(FinalHitData.Color),
         .pos(out.HitPos),
         .hit(FinalHitData.SurfaceType != ST_None),
-        .vi(FinalHitData.VI),
+        .pi(FinalHitData.PI),
         .out(out.Color)
     );        
 
