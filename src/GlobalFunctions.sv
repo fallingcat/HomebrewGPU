@@ -41,7 +41,7 @@ endfunction
 
 function NextBVHPrimitiveData;
     FetchStart = StartPrimitiveIndex;
-    StartPrimitiveIndex = StartPrimitiveIndex + `BVH_AABB_TEST_UNIT_SIZE;       
+    StartPrimitiveIndex = StartPrimitiveIndex + `AABB_TEST_UNIT_SIZE;       
 endfunction
 
 function QueuePrimitiveGroup;	
@@ -59,9 +59,9 @@ function DequeuePrimitiveGroup;
     AlignedNumPrimitives = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].NumPrimitives;
     RealEndPrimitiveIndex = StartPrimitiveIndex + AlignedNumPrimitives;
 
-    if (`BVH_AABB_TEST_UNIT_SIZE_WIDTH >= 1) begin
-        if (AlignedNumPrimitives[`BVH_AABB_TEST_UNIT_SIZE_WIDTH-1:0] != 0) begin
-            AlignedNumPrimitives = (((AlignedNumPrimitives >> `BVH_AABB_TEST_UNIT_SIZE_WIDTH) + 1) << `BVH_AABB_TEST_UNIT_SIZE_WIDTH);
+    if (`AABB_TEST_UNIT_SIZE_WIDTH >= 1) begin
+        if (AlignedNumPrimitives[`AABB_TEST_UNIT_SIZE_WIDTH-1:0] != 0) begin
+            AlignedNumPrimitives = (((AlignedNumPrimitives >> `AABB_TEST_UNIT_SIZE_WIDTH) + 1) << `AABB_TEST_UNIT_SIZE_WIDTH);
         end
     end
 

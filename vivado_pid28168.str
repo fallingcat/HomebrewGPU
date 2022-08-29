@@ -1,0 +1,216 @@
+/*
+
+Xilinx Vivado v2021.2 (64-bit) [Major: 2021, Minor: 2]
+SW Build: 3367213 on Tue Oct 19 02:48:09 MDT 2021
+IP Build: 3369179 on Thu Oct 21 08:25:16 MDT 2021
+
+Process ID (PID): 28168
+License: Customer
+Mode: GUI Mode
+
+Current time: 	Tue Aug 23 16:53:51 CST 2022
+Time zone: 	Taipei Standard Time (Asia/Taipei)
+
+OS: Windows 10
+OS Version: 10.0
+OS Architecture: amd64
+Available processors (cores): 20
+
+Screen size: 2560x1080
+Screen resolution (DPI): 100
+Available screens: 3
+Default font: family=Dialog,name=Dialog,style=plain,size=12
+Scale size: 12
+
+Java version: 	11.0.11 64-bit
+Java home: 	C:/Xilinx/Vivado/2021.2/tps/win64/jre11.0.11_9
+Java executable: 	C:/Xilinx/Vivado/2021.2/tps/win64/jre11.0.11_9/bin/java.exe
+Java arguments: 	[-Dsun.java2d.pmoffscreen=false, -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2, -Dsun.java2d.xrender=false, -Dsun.java2d.d3d=false, -Dsun.awt.nopixfmt=true, -Dsun.java2d.dpiaware=true, -Dsun.java2d.uiScale.enabled=false, -Xverify:none, -Dswing.aatext=true, -XX:-UsePerfData, -Djdk.map.althashing.threshold=512, -XX:StringTableSize=4072, --add-opens=java.base/java.nio=ALL-UNNAMED, --add-opens=java.desktop/sun.swing=ALL-UNNAMED, --add-opens=java.desktop/javax.swing=ALL-UNNAMED, --add-opens=java.desktop/javax.swing.tree=ALL-UNNAMED, --add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED, --add-opens=java.desktop/javax.swing.plaf.synth=ALL-UNNAMED, --add-opens=java.desktop/com.sun.awt=ALL-UNNAMED, -XX:NewSize=60m, -XX:MaxNewSize=60m, -Xms256m, -Xmx3072m, -Xss5m]
+Java initial memory (-Xms): 	256 MB
+Java maximum memory (-Xmx):	 3 GB
+
+
+User name: 	owen
+User home directory: C:/Users/owen
+User working directory: E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU
+User country: 	TW
+User language: 	zh
+User locale: 	zh_TW
+
+RDI_BASEROOT: C:/Xilinx/Vivado
+HDI_APPROOT: C:/Xilinx/Vivado/2021.2
+RDI_DATADIR: C:/Xilinx/Vivado/2021.2/data
+RDI_BINDIR: C:/Xilinx/Vivado/2021.2/bin
+
+Vivado preferences file: C:/Users/owen/AppData/Roaming/Xilinx/Vivado/2021.2/vivado.xml
+Vivado preferences directory: C:/Users/owen/AppData/Roaming/Xilinx/Vivado/2021.2/
+Vivado layouts directory: C:/Users/owen/AppData/Roaming/Xilinx/Vivado/2021.2/data/layouts
+PlanAhead jar file: 	C:/Xilinx/Vivado/2021.2/lib/classes/planAhead.jar
+Vivado log file: 	E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/vivado.log
+Vivado journal file: 	E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/vivado.jou
+Engine tmp dir: 	E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/.Xil/Vivado-28168-TIGER
+
+Xilinx Environment Variables
+----------------------------
+ANDROID_SDK_ROOT: C:\Users\owen\AppData\Local\Android\Sdk
+DXSDK_DIR: C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\
+VK_SDK_PATH: D:\App\VulkanSDK
+VULKAN_SDK: D:\App\VulkanSDK
+XILINX: C:/Xilinx/Vivado/2021.2/ids_lite/ISE
+XILINX_DSP: C:/Xilinx/Vivado/2021.2/ids_lite/ISE
+XILINX_HLS: C:/Xilinx/Vitis_HLS/2021.2
+XILINX_PLANAHEAD: C:/Xilinx/Vivado/2021.2
+XILINX_VIVADO: C:/Xilinx/Vivado/2021.2
+XILINX_VIVADO_HLS: C:/Xilinx/Vivado/2021.2
+
+
+GUI allocated memory:	308 MB
+GUI max memory:		3,072 MB
+Engine allocated memory: 1,333 MB
+
+Copyright 1986-2021 Xilinx, Inc. All Rights Reserved.
+
+*/
+
+// TclEventType: START_GUI
+// TclEventType: PROJECT_OPEN_DIALOG
+// Tcl Message: start_gui 
+// TclEventType: PROJECT_OPEN_DIALOG
+// Opening Vivado Project: E:\MyWork\HomebrewGPU_old\Prototype\HomebrewGPU\HomebrewGPU.xpr. Version: Vivado v2021.2 
+// TclEventType: DEBUG_PROBE_SET_CHANGE
+// TclEventType: FLOW_ADDED
+// Tcl Message: open_project E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.xpr 
+// TclEventType: MSGMGR_MOVEMSG
+// TclEventType: FILE_SET_CHANGE
+// TclEventType: FILESET_TARGET_UCF_CHANGE
+// TclEventType: FILE_SET_CHANGE
+// TclEventType: FILE_SET_NEW
+// TclEventType: RUN_COMPLETED
+// TclEventType: RUN_STATUS_CHANGE
+// TclEventType: FILESET_TARGET_UCF_CHANGE
+// TclEventType: RUN_COMPLETED
+// TclEventType: RUN_STATUS_CHANGE
+// TclEventType: RUN_COMPLETED
+// TclEventType: RUN_STATUS_CHANGE
+// TclEventType: RUN_COMPLETED
+// TclEventType: RUN_STATUS_CHANGE
+// TclEventType: FILESET_TARGET_UCF_CHANGE
+// TclEventType: RUN_CURRENT
+// TclEventType: PROJECT_DASHBOARD_NEW
+// TclEventType: PROJECT_DASHBOARD_GADGET_NEW
+// TclEventType: PROJECT_DASHBOARD_GADGET_CHANGE
+// TclEventType: PROJECT_DASHBOARD_GADGET_NEW
+// HMemoryUtils.trashcanNow. Engine heap size: 1,333 MB. GUI used memory: 62 MB. Current time: 8/23/22, 4:53:52 PM CST
+// TclEventType: FILE_SET_CHANGE
+// TclEventType: IP_LOCK_CHANGE
+// TclEventType: FILE_SET_CHANGE
+// TclEventType: PROJECT_NEW
+// Tcl Message: open_project E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.xpr 
+// Tcl Message: INFO: [Project 1-313] Project file moved from 'E:/MyWork/HomebrewGPU/Prototype/HomebrewGPU' since last save. 
+// Tcl Message: Scanning sources... Finished scanning sources 
+// Tcl Message: INFO: [IP_Flow 19-234] Refreshing IP repositories INFO: [IP_Flow 19-1704] No user IP repositories specified INFO: [IP_Flow 19-2313] Loaded Vivado IP repository 'C:/Xilinx/Vivado/2021.2/data/ip'. 
+// TclEventType: PROJECT_NEW
+// [GUI Memory]: 114 MB (+117023kb) [00:00:15]
+// [Engine Memory]: 1,333 MB (+1246128kb) [00:00:15]
+// [GUI Memory]: 125 MB (+5527kb) [00:00:16]
+// WARNING: HEventQueue.dispatchEvent() is taking  2728 ms.
+// Tcl Message: open_project: Time (s): cpu = 00:00:26 ; elapsed = 00:00:13 . Memory (MB): peak = 1604.121 ; gain = 0.000 
+// Project name: HomebrewGPU; location: E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU; part: xc7a100tcsg324-1
+dismissDialog("Open Project"); // bA
+// TclEventType: FILE_SET_CHANGE
+// [GUI Memory]: 135 MB (+3624kb) [00:00:24]
+// TclEventType: FILE_SET_CHANGE
+// [GUI Memory]: 155 MB (+14525kb) [00:00:26]
+// Tcl Message: update_compile_order -fileset sources_1 
+selectButton(PAResourceAtoD.CmdMsgDialog_OK, "OK"); // f
+dismissDialog("Critical Messages"); // a
+// [GUI Memory]: 164 MB (+880kb) [00:00:30]
+selectTree(PAResourceEtoH.FlowNavigatorTreePanel_FLOW_NAVIGATOR_TREE, "[, Program and Debug, Generate Bitstream]", 20, false); // n
+// Run Command: PAResourceCommand.PACommandNames_RUN_BITGEN
+selectButton("OptionPane.button", "OK"); // JButton
+selectButton(RDIResource.BaseDialog_OK, "OK"); // a
+// 'cR' command handler elapsed time: 8 seconds
+dismissDialog("Launch Runs"); // cU
+// TclEventType: RUN_MODIFY
+// TclEventType: RUN_RESET
+// TclEventType: RUN_MODIFY
+// Tcl Message: reset_run NormalImpl -prev_step  
+// TclEventType: RUN_LAUNCH
+// TclEventType: RUN_MODIFY
+// Tcl Message: launch_runs NormalImpl -to_step write_bitstream -jobs 10 
+// Tcl Message: INFO: [Vivado 12-4149] The synthesis checkpoint for IP 'E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.srcs/sources_1/ip/mig/mig.xci' is already up-to-date INFO: [Vivado 12-4149] The synthesis checkpoint for IP 'E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.srcs/sources_1/ip/Sqrt/Sqrt.xci' is already up-to-date INFO: [Vivado 12-4149] The synthesis checkpoint for IP 'E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.srcs/sources_1/ip/Div/Div.xci' is already up-to-date 
+// Tcl Message: [Tue Aug 23 16:54:24 2022] Launched NormalImpl... Run output will be captured here: E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.runs/NormalImpl/runme.log 
+dismissDialog("Generate Bitstream"); // bA
+// TclEventType: RUN_STATUS_CHANGE
+selectButton(PAResourceQtoS.SyntheticaStateMonitor_CANCEL, "Cancel"); // g
+// TclEventType: RUN_MODIFY
+// TclEventType: RUN_RESET
+// TclEventType: RUN_COMPLETED
+// TclEventType: RUN_STATUS_CHANGE
+// Tcl Message: reset_run NormalImpl -prev_step  
+// TclEventType: RUN_RESET
+// TclEventType: RUN_MODIFY
+dismissDialog("Reset to Previous Step"); // bA
+selectButton(PAResourceOtoP.ProjectSummaryDRCPanel_OPEN_DRC_REPORT, "Implemented DRC Report"); // g
+// TclEventType: RUN_STATUS_CHANGE
+// Run Command: PAResourceCommand.PACommandNames_GOTO_IMPLEMENTED_DESIGN
+selectButton("OptionPane.button", "OK"); // JButton
+// Tcl Message: open_run NormalImpl 
+selectButton(RDIResource.ProgressDialog_CANCEL, "Cancel"); // a
+// HMemoryUtils.trashcanNow. Engine heap size: 1,485 MB. GUI used memory: 97 MB. Current time: 8/23/22, 4:54:42 PM CST
+// TclEventType: DESIGN_CLOSE
+// TclEventType: DESIGN_NEW_FAILED
+// [Engine Memory]: 1,585 MB (+194375kb) [00:01:04]
+// TclEventType: DESIGN_NEW_FAILED
+// Tcl Message: INFO: [Device 21-403] Loading part xc7a100tcsg324-1 INFO: [Common 17-41] Interrupt caught. Command should exit soon. 
+// Tcl Message: Netlist sorting complete. Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1654.379 ; gain = 5.141 
+// Tcl Message: INFO: [Netlist 29-17] Analyzing 6143 Unisim elements for replacement INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds INFO: [Project 1-479] Netlist was created with Vivado 2021.2 
+// Tcl Message: open_run: Time (s): cpu = 00:00:12 ; elapsed = 00:00:11 . Memory (MB): peak = 1743.473 ; gain = 139.352 
+// Tcl Message: INFO: [Common 17-344] 'open_run' was cancelled 
+// CommandFailedException: ERROR: [Common 17-69] Command failed:  
+// 'el' command handler elapsed time: 10 seconds
+dismissDialog("Open Implemented Design"); // bA
+selectTreeTable(PAResourceEtoH.ExpRunTreePanel_EXP_RUN_TREE_TABLE, "NormalSynth ; constrs_1 ; synth_design Complete! ;  ;  ;  ;  ;  ;  ;  ;  ; 33794 ; 16287 ; 0.0 ; 0 ; 236 ; Wed Mar 30 16:23:13 CST 2022 ; 00:03:45 ; Flow_PerfOptimized_high (Vivado Synthesis 2021) ; Vivado Synthesis Default Reports (Vivado Synthesis 2021) ; xc7a100tcsg324-1 ; Higher performance designs, resource sharing is turned off, the global fanout guide is set to a lower number, FSM extraction forced to one-hot, LUT combining is disabled, equivalent registers are preserved, SRL are inferred  with a larger threshold", 2, "NormalSynth", 0, true); // az - Node
+// PAPropertyPanels.initPanels (NormalSynth) elapsed time: 0.3s
+selectTab(PAResourceEtoH.FileSetView_TABBED_PANE, (HResource) null, "Hierarchy", 0); // i
+collapseTree(PAResourceEtoH.FileSetPanel_FILE_SET_PANEL_TREE, "[root, Simulation Sources]", 2); // D
+expandTree(PAResourceEtoH.FileSetPanel_FILE_SET_PANEL_TREE, "[root, Design Sources]", 0); // D
+selectTree(PAResourceEtoH.FileSetPanel_FILE_SET_PANEL_TREE, "[root, Design Sources, HomebrewGPUTop (HomebrewGPUTop.sv)]", 3, true); // D - Node
+selectTree(PAResourceEtoH.FileSetPanel_FILE_SET_PANEL_TREE, "[root, Design Sources, HomebrewGPUTop (HomebrewGPUTop.sv)]", 3, true, false, false, false, true, false); // D - Popup Trigger - Node
+selectMenu(PAResourceCommand.PACommandNames_AUTO_UPDATE_HIER, "Hierarchy Update"); // al
+selectMenu(PAResourceQtoS.SrcMenu_IP_HIERARCHY, "IP Hierarchy"); // al
+selectTreeTable(PAResourceEtoH.ExpRunTreePanel_EXP_RUN_TREE_TABLE, "NormalSynth ; constrs_1 ; synth_design Complete! ;  ;  ;  ;  ;  ;  ;  ;  ; 33794 ; 16287 ; 0.0 ; 0 ; 236 ; Wed Mar 30 16:23:13 CST 2022 ; 00:03:45 ; Flow_PerfOptimized_high (Vivado Synthesis 2021) ; Vivado Synthesis Default Reports (Vivado Synthesis 2021) ; xc7a100tcsg324-1 ; Higher performance designs, resource sharing is turned off, the global fanout guide is set to a lower number, FSM extraction forced to one-hot, LUT combining is disabled, equivalent registers are preserved, SRL are inferred  with a larger threshold", 2, "NormalSynth", 0, true); // az - Node
+// Elapsed time: 10 seconds
+selectButton(PAResourceQtoS.SyntheticaStateMonitor_CANCEL, "Cancel"); // g
+// TclEventType: RUN_MODIFY
+// TclEventType: RUN_RESET
+// TclEventType: RUN_COMPLETED
+// TclEventType: RUN_STATUS_CHANGE
+// TclEventType: RUN_RESET
+// TclEventType: RUN_MODIFY
+// Tcl Message: reset_run NormalImpl -prev_step  
+dismissDialog("Reset to Previous Step"); // bA
+selectTree(PAResourceEtoH.FlowNavigatorTreePanel_FLOW_NAVIGATOR_TREE, "[, Program and Debug, Generate Bitstream]", 20, false, false, false, false, true, false); // n - Popup Trigger
+selectTreeTable(PAResourceEtoH.ExpRunTreePanel_EXP_RUN_TREE_TABLE, "NormalSynth ; constrs_1 ; synth_design Complete! ;  ;  ;  ;  ;  ;  ;  ;  ; 33794 ; 16287 ; 0.0 ; 0 ; 236 ; Wed Mar 30 16:23:13 CST 2022 ; 00:03:45 ; Flow_PerfOptimized_high (Vivado Synthesis 2021) ; Vivado Synthesis Default Reports (Vivado Synthesis 2021) ; xc7a100tcsg324-1 ; Higher performance designs, resource sharing is turned off, the global fanout guide is set to a lower number, FSM extraction forced to one-hot, LUT combining is disabled, equivalent registers are preserved, SRL are inferred  with a larger threshold", 2, "NormalSynth", 0, true, false, false, false, true, false); // az - Popup Trigger - Node
+selectMenuItem(PAResourceCommand.PACommandNames_RESET_RUNS, "Reset Runs"); // ao
+selectButton(RDIResource.BaseDialog_OK, "Reset"); // a
+// TclEventType: RUN_MODIFY
+// TclEventType: RUN_RESET
+// TclEventType: RUN_STATUS_CHANGE
+// TclEventType: RUN_RESET
+// TclEventType: RUN_STATUS_CHANGE
+// TclEventType: RUN_RESET
+// TclEventType: RUN_MODIFY
+// Tcl Message: reset_run NormalSynth 
+dismissDialog("Resetting Runs"); // bA
+selectTreeTable(PAResourceEtoH.ExpRunTreePanel_EXP_RUN_TREE_TABLE, "NormalSynth ; constrs_1 ; Not started ;  ;  ;  ;  ;  ;  ;  ;  ;  ;  ;  ;  ;  ;  ;  ; Flow_PerfOptimized_high (Vivado Synthesis 2021) ; Vivado Synthesis Default Reports (Vivado Synthesis 2021) ; xc7a100tcsg324-1 ; Higher performance designs, resource sharing is turned off, the global fanout guide is set to a lower number, FSM extraction forced to one-hot, LUT combining is disabled, equivalent registers are preserved, SRL are inferred  with a larger threshold", 2, "NormalSynth", 0, true, false, false, false, true, false); // az - Popup Trigger - Node
+selectMenuItem(PAResourceEtoH.ExpRunMenu_LAUNCH_RUNS, "Launch Runs..."); // ao
+selectButton(RDIResource.BaseDialog_OK, "OK"); // a
+// TclEventType: FILESET_TARGET_UCF_CHANGE
+// TclEventType: RUN_LAUNCH
+// TclEventType: RUN_MODIFY
+// Tcl Message: launch_runs NormalSynth -jobs 10 
+// Tcl Message: INFO: [Vivado 12-4149] The synthesis checkpoint for IP 'E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.srcs/sources_1/ip/mig/mig.xci' is already up-to-date INFO: [Vivado 12-4149] The synthesis checkpoint for IP 'E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.srcs/sources_1/ip/Sqrt/Sqrt.xci' is already up-to-date INFO: [Vivado 12-4149] The synthesis checkpoint for IP 'E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.srcs/sources_1/ip/Div/Div.xci' is already up-to-date 
+// Tcl Message: [Tue Aug 23 16:55:50 2022] Launched NormalSynth... Run output will be captured here: E:/MyWork/HomebrewGPU_old/Prototype/HomebrewGPU/HomebrewGPU.runs/NormalSynth/runme.log 
+dismissDialog("Starting Design Runs"); // bA
+// TclEventType: RUN_STATUS_CHANGE

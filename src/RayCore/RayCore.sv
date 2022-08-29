@@ -35,8 +35,8 @@ module RayCore(
     // inputs...    
     input RasterInputData input_data,        
     input RenderState rs,
-    input BVH_Primitive_AABB p0[`BVH_AABB_TEST_UNIT_SIZE],
-    input BVH_Primitive_AABB p1[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE],
     input BVH_Node node_0,    
     input BVH_Node node_1,    
     input BVH_Leaf leaf_0[2],       

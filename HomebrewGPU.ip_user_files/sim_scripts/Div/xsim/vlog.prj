@@ -1,0 +1,6 @@
+sv xpm  \
+"C:/Xilinx/Vivado/2021.2/data/ip/xpm/xpm_cdc/hdl/xpm_cdc.sv" \
+
+verilog xil_defaultlib "glbl.v"
+
+nosort

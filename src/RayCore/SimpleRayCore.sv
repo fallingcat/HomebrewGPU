@@ -56,7 +56,7 @@ module SimpleRasterUnit (
     // inputs...
     input RasterInputData input_data,            
     input RenderState rs,    
-    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...  
@@ -81,7 +81,7 @@ module SimpleRasterUnit (
     //
     //-------------------------------------------------------------------    
 	function NexPrimitiveData;
-        StartPrimitiveIndex = StartPrimitiveIndex + `BVH_AABB_TEST_UNIT_SIZE;       
+        StartPrimitiveIndex = StartPrimitiveIndex + `AABB_TEST_UNIT_SIZE;       
 	endfunction   
     //-------------------------------------------------------------------
     //
@@ -91,9 +91,9 @@ module SimpleRasterUnit (
         AlignedNumPrimitives = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].NumPrimitives;
         RealEndPrimitiveIndex = StartPrimitiveIndex + AlignedNumPrimitives;
 
-        if (`BVH_AABB_TEST_UNIT_SIZE_WIDTH >= 1) begin
-            if (AlignedNumPrimitives[`BVH_AABB_TEST_UNIT_SIZE_WIDTH-1:0] != 0) begin
-                AlignedNumPrimitives = (((AlignedNumPrimitives >> `BVH_AABB_TEST_UNIT_SIZE_WIDTH) + 1) << `BVH_AABB_TEST_UNIT_SIZE_WIDTH);
+        if (`AABB_TEST_UNIT_SIZE_WIDTH >= 1) begin
+            if (AlignedNumPrimitives[`AABB_TEST_UNIT_SIZE_WIDTH-1:0] != 0) begin
+                AlignedNumPrimitives = (((AlignedNumPrimitives >> `AABB_TEST_UNIT_SIZE_WIDTH) + 1) << `AABB_TEST_UNIT_SIZE_WIDTH);
             end
         end
 
@@ -236,7 +236,7 @@ module SimpleRaster (
     input RasterInputData input_data,                 
     input RasterInputData ref_input_data,            
     input RenderState rs,    
-    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...  
@@ -321,7 +321,7 @@ module SimpleShadowingUnit (
     // inputs...    
     input RasterOutputData input_data,    
     input RenderState rs,    
-    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...      
@@ -403,7 +403,7 @@ module SimpleShadowing (
     input RasterOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
-    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
 
     // outputs...  
     output logic fifo_full,
@@ -558,8 +558,8 @@ module SimpleRayCore(
     // inputs...    
     input RasterInputData input_data,        
     input RenderState rs,
-    input BVH_Primitive_AABB p0[`BVH_AABB_TEST_UNIT_SIZE],
-    input BVH_Primitive_AABB p1[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE],
         
     // outputs...  
     output logic fifo_full,        

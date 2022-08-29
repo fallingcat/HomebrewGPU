@@ -1,0 +1,5 @@
+xpm_cdc.sv,systemverilog,xpm,../../../../../Xilinx/Vivado/2021.2/data/ip/xpm/xpm_cdc/hdl/xpm_cdc.sv,incdir="../../../ipstatic"incdir="../../../ipstatic"
+xpm_VCOMP.vhd,vhdl,xpm,../../../../../Xilinx/Vivado/2021.2/data/ip/xpm/xpm_VCOMP.vhd,incdir="../../../ipstatic"incdir="../../../ipstatic"
+ClockWizard_clk_wiz.v,verilog,xil_defaultlib,../../../ip/ClockWizard/ClockWizard_clk_wiz.v,incdir="../../../ipstatic"incdir="../../../ipstatic"
+ClockWizard.v,verilog,xil_defaultlib,../../../ip/ClockWizard/ClockWizard.v,incdir="../../../ipstatic"incdir="../../../ipstatic"
+glbl.v,Verilog,xil_defaultlib,glbl.v

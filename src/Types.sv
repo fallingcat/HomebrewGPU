@@ -108,11 +108,6 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define FRAMEBUFFER_READ_ID                 8'd0
 
 // Configuration >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-// RayCore
-//`define IMPLEMENT_SHADOWING                 1
-//`define IMPLEMENT_REFLECTION                1
-//`define IMPLEMENT_REFRACTION                1
-
 // BVH ---------------------------------------------------------------------
 `define BVH_PRIMITIVE_PATH                  `STRINGIFY(E:/MyWork/HomebrewGPU/data/chr_sword.vox.bvh.primitives.txt)
 `define BVH_NODES_PATH                      `STRINGIFY(E:/MyWork/HomebrewGPU/data/chr_sword.vox.bvh.nodes.txt)
@@ -173,18 +168,23 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_NODE_STACK_SIZE_WIDTH            6
 `define BVH_NODE_STACK_SIZE                  2**`BVH_NODE_STACK_SIZE_WIDTH
 
-`define BVH_AABB_TEST_UNIT_SIZE_WIDTH       0
-`define BVH_AABB_TEST_UNIT_SIZE             2**`BVH_AABB_TEST_UNIT_SIZE_WIDTH
-
-`define BVH_SPHERE_TEST_UNIT_SIZE_WIDTH     0
-`define BVH_SPHERE_TEST_UNIT_SIZE           2**`BVH_SPHERE_TEST_UNIT_SIZE_WIDTH
-
 // Ray Core --------------------------------------------------------------
+//`define IMPLEMENT_SHADOWING                 1
+//`define IMPLEMENT_REFLECTION                1
+//`define IMPLEMENT_REFRACTION                1
+
 //`define BASIC_RAY_CORE                     1
 //`define SIMPLE_RAY_CORE                     1
 //`define TEST_RAY_CORE                       1
 `define RAY_CORE_SIZE_WIDTH                 0
 `define RAY_CORE_SIZE                       2**`RAY_CORE_SIZE_WIDTH
+
+`define AABB_TEST_UNIT_SIZE_WIDTH           0
+`define AABB_TEST_UNIT_SIZE                 2**`AABB_TEST_UNIT_SIZE_WIDTH
+
+`define SPHERE_TEST_UNIT_SIZE_WIDTH         0
+`define SPHERE_TEST_UNIT_SIZE               2**`SPHERE_TEST_UNIT_SIZE_WIDTH
+
 
 // Ray tracing level -----------------------------------------------------
 `define BOUNCE_LEVEL_WIDTH                  4

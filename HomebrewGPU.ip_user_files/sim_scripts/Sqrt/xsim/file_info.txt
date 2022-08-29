@@ -1,0 +1,11 @@
+xbip_utils_v3_0_vh_rfs.vhd,vhdl,xbip_utils_v3_0_10,../../../ipstatic/hdl/xbip_utils_v3_0_vh_rfs.vhd,
+c_reg_fd_v12_0_vh_rfs.vhd,vhdl,c_reg_fd_v12_0_6,../../../ipstatic/hdl/c_reg_fd_v12_0_vh_rfs.vhd,
+xbip_dsp48_wrapper_v3_0_vh_rfs.vhd,vhdl,xbip_dsp48_wrapper_v3_0_4,../../../ipstatic/hdl/xbip_dsp48_wrapper_v3_0_vh_rfs.vhd,
+xbip_pipe_v3_0_vh_rfs.vhd,vhdl,xbip_pipe_v3_0_6,../../../ipstatic/hdl/xbip_pipe_v3_0_vh_rfs.vhd,
+xbip_dsp48_addsub_v3_0_vh_rfs.vhd,vhdl,xbip_dsp48_addsub_v3_0_6,../../../ipstatic/hdl/xbip_dsp48_addsub_v3_0_vh_rfs.vhd,
+xbip_addsub_v3_0_vh_rfs.vhd,vhdl,xbip_addsub_v3_0_6,../../../ipstatic/hdl/xbip_addsub_v3_0_vh_rfs.vhd,
+c_addsub_v12_0_vh_rfs.vhd,vhdl,c_addsub_v12_0_14,../../../ipstatic/hdl/c_addsub_v12_0_vh_rfs.vhd,
+xbip_bram18k_v3_0_vh_rfs.vhd,vhdl,xbip_bram18k_v3_0_6,../../../ipstatic/hdl/xbip_bram18k_v3_0_vh_rfs.vhd,
+axi_utils_v2_0_vh_rfs.vhd,vhdl,axi_utils_v2_0_6,../../../ipstatic/hdl/axi_utils_v2_0_vh_rfs.vhd,
+Sqrt.vhd,vhdl,xil_defaultlib,../../../ip/Sqrt/sim/Sqrt.vhd,
+glbl.v,Verilog,xil_defaultlib,glbl.v

@@ -56,29 +56,29 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SetupFinalHitData ( 
+module SetupClosestHitData ( 
     input clk,    
     input logic reset,    
     input RGB8 color,           
     input HitData hit_data,     
-    output HitData final_hit_data     
+    output HitData closest_hit_data     
     );
     logic IsClosestHit;
 
     always_ff @(posedge clk) begin    
         if (reset) begin
-            final_hit_data.bHit <= 0;			
-            final_hit_data.SurfaceType <= ST_None;
-            final_hit_data.Color <= color;   
-            final_hit_data.T.Value = `FIXED_MAX;
+            closest_hit_data.bHit <= 0;			
+            closest_hit_data.SurfaceType <= ST_None;
+            closest_hit_data.Color <= color;   
+            closest_hit_data.T.Value = `FIXED_MAX;
         end
         else begin            
             if (hit_data.SurfaceType != ST_None && IsClosestHit) begin                
-                final_hit_data = hit_data;
+                closest_hit_data = hit_data;
             end                    
         end        
     end
-    Fixed_Less A0(hit_data.T, final_hit_data.T, IsClosestHit);    
+    Fixed_Less A0(hit_data.T, closest_hit_data.T, IsClosestHit);    
 endmodule
 //-------------------------------------------------------------------
 //
@@ -128,7 +128,7 @@ module RasterUnit (
     input RenderState rs,    
     input output_fifo_full,	    
 
-    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],    
 
@@ -143,7 +143,7 @@ module RasterUnit (
     
     RasterState State, NextState = RASTS_Init;         
     RasterInputData Input, CurrentInput;
-    HitData PHitData, FinalHitData;	         
+    HitData HitData, ClosestHitData;	         
     
     // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
@@ -155,7 +155,7 @@ module RasterUnit (
     PrimitiveGroupFIFO PrimitiveFIFO;	
 	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;    
 
-    logic ResetFinalHitData;    
+    logic ResetClosestHitData;    
     
     Fixed3 D;
     
@@ -163,7 +163,7 @@ module RasterUnit (
     //
     //-------------------------------------------------------------------    
 	function NextPrimitiveData;
-        StartPrimitiveIndex = StartPrimitiveIndex + `BVH_AABB_TEST_UNIT_SIZE;       
+        StartPrimitiveIndex = StartPrimitiveIndex + `AABB_TEST_UNIT_SIZE;       
 	endfunction    
     //-------------------------------------------------------------------
     //
@@ -185,9 +185,9 @@ module RasterUnit (
         AlignedNumPrimitives = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].NumPrimitives;
         RealEndPrimitiveIndex = StartPrimitiveIndex + AlignedNumPrimitives;
 
-        if (`BVH_AABB_TEST_UNIT_SIZE_WIDTH >= 1) begin
-            if (AlignedNumPrimitives[`BVH_AABB_TEST_UNIT_SIZE_WIDTH-1:0] != 0) begin
-                AlignedNumPrimitives = (((AlignedNumPrimitives >> `BVH_AABB_TEST_UNIT_SIZE_WIDTH) + 1) << `BVH_AABB_TEST_UNIT_SIZE_WIDTH);
+        if (`AABB_TEST_UNIT_SIZE_WIDTH >= 1) begin
+            if (AlignedNumPrimitives[`AABB_TEST_UNIT_SIZE_WIDTH-1:0] != 0) begin
+                AlignedNumPrimitives = (((AlignedNumPrimitives >> `AABB_TEST_UNIT_SIZE_WIDTH) + 1) << `AABB_TEST_UNIT_SIZE_WIDTH);
             end
         end
 
@@ -239,7 +239,7 @@ module RasterUnit (
                     if (fifo_full) begin                        
                         CurrentInput = Input;                  
                         fifo_full <= 0;
-                        ResetFinalHitData <= 1;
+                        ResetClosestHitData <= 1;
 
                         // Init BVH traversal
                         PrimitiveFIFO.Top = 0;			
@@ -254,7 +254,7 @@ module RasterUnit (
                 end   
                 
                 (RASTS_Rasterize): begin                    
-                    ResetFinalHitData <= 0;
+                    ResetClosestHitData <= 0;
                     valid <= 0;                    
                     BU_Strobe <= 0;       
 
@@ -318,19 +318,19 @@ module RasterUnit (
     RayUnit_FindClosestHit RU(
 		.r(CurrentInput.RasterRay), 		
 		.p(p),
-		.hit_data(PHitData)		
+		.hit_data(HitData)		
 	);    
 
     // Setup HitData for the closest hit
-    SetupFinalHitData SETUPHITDATA( 
+    SetupClosestHitData SETUPHITDATA( 
         .clk(clk),	         
-        .reset(ResetFinalHitData),        
+        .reset(ResetClosestHitData),        
         .color(rs.ClearColor),                
-        .hit_data(PHitData),        
-        .final_hit_data(FinalHitData)     
+        .hit_data(HitData),        
+        .closest_hit_data(ClosestHitData)     
     );        
     
-    Fixed3_Mul A1(FinalHitData.T, CurrentInput.RasterRay.Dir, D);
+    Fixed3_Mul A1(ClosestHitData.T, CurrentInput.RasterRay.Dir, D);
     Fixed3_Add A2(CurrentInput.RasterRay.Orig, D, out.HitPos);            
 
     // Prepare the output data for next stage
@@ -340,7 +340,7 @@ module RasterUnit (
         .light_dir(rs.Light[0].Dir),
         .light_invdir(rs.Light[0].InvDir),
         .input_data(CurrentInput),
-        .hit_data(FinalHitData),
+        .hit_data(ClosestHitData),
         .out(out)
     );
     
@@ -348,10 +348,10 @@ module RasterUnit (
     _Texturing TX(
         .clk(clk),
         .strobe(NextState == RASTS_Done),
-        .color(FinalHitData.Color),
+        .color(ClosestHitData.Color),
         .pos(out.HitPos),
-        .hit(FinalHitData.SurfaceType != ST_None),
-        .pi(FinalHitData.PI),
+        .hit(ClosestHitData.SurfaceType != ST_None),
+        .pi(ClosestHitData.PI),
         .out(out.Color)
     );        
 
@@ -373,7 +373,7 @@ module Raster (
     input RenderState rs,    
     input output_fifo_full,	    
 
-    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],           
 

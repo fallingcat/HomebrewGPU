@@ -72,9 +72,9 @@ module Renderer(
 	ShaderOutputData ShaderOut[`RAY_CORE_SIZE];    	 
 
 	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex0[`RAY_CORE_SIZE], EndPrimitiveIndex0[`RAY_CORE_SIZE];
-	BVH_Primitive_AABB P0[`RAY_CORE_SIZE][`BVH_AABB_TEST_UNIT_SIZE];    
+	BVH_Primitive_AABB P0[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    
 	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex1[`RAY_CORE_SIZE], EndPrimitiveIndex1[`RAY_CORE_SIZE];
-	BVH_Primitive_AABB P1[`RAY_CORE_SIZE][`BVH_AABB_TEST_UNIT_SIZE];    
+	BVH_Primitive_AABB P1[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    
 
 	logic [`BVH_NODE_INDEX_WIDTH-1:0] BVHNodeIndex0[`RAY_CORE_SIZE], BVHNodeIndex1[`RAY_CORE_SIZE];
 	BVH_Node BVHNode0[`RAY_CORE_SIZE], BVHNode1[`RAY_CORE_SIZE];

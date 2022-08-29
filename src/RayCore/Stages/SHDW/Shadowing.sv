@@ -65,7 +65,7 @@ module ShadowingUnit (
     input RenderState rs,    
     input output_fifo_full,	    
 
-    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],        
 
@@ -82,7 +82,7 @@ module ShadowingUnit (
 
     RasterOutputData Input, CurrentInput;
 
-    HitData PHitData, FinalHitData;	       
+    HitData HitData;	       
         
     // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
@@ -98,7 +98,7 @@ module ShadowingUnit (
     //
     //-------------------------------------------------------------------    
     function NextPrimitiveData;
-        StartPrimitiveIndex = StartPrimitiveIndex + `BVH_AABB_TEST_UNIT_SIZE;       
+        StartPrimitiveIndex = StartPrimitiveIndex + `AABB_TEST_UNIT_SIZE;       
 	endfunction    
     //-------------------------------------------------------------------
     //
@@ -120,9 +120,9 @@ module ShadowingUnit (
         AlignedNumPrimitives = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].NumPrimitives;
         RealEndPrimitiveIndex = StartPrimitiveIndex + AlignedNumPrimitives;
 
-        if (`BVH_AABB_TEST_UNIT_SIZE_WIDTH >= 1) begin
-            if (AlignedNumPrimitives[`BVH_AABB_TEST_UNIT_SIZE_WIDTH-1:0] != 0) begin
-                AlignedNumPrimitives = (((AlignedNumPrimitives >> `BVH_AABB_TEST_UNIT_SIZE_WIDTH) + 1) << `BVH_AABB_TEST_UNIT_SIZE_WIDTH);
+        if (`AABB_TEST_UNIT_SIZE_WIDTH >= 1) begin
+            if (AlignedNumPrimitives[`AABB_TEST_UNIT_SIZE_WIDTH-1:0] != 0) begin
+                AlignedNumPrimitives = (((AlignedNumPrimitives >> `AABB_TEST_UNIT_SIZE_WIDTH) + 1) << `AABB_TEST_UNIT_SIZE_WIDTH);
             end
         end
 
@@ -175,7 +175,7 @@ module ShadowingUnit (
                         CurrentInput = Input;                  
                         fifo_full <= 0;
 
-                        FinalHitData.bHit <= 0;
+                        ClosestHitData.bHit <= 0;
                             
                         PrimitiveFIFO.Top = 0;			
                         PrimitiveFIFO.Bottom = 0;			
@@ -203,9 +203,9 @@ module ShadowingUnit (
                     // Queue possible hit primitives.  
                     QueuePrimitiveGroup();               
                                         
-                    if (PHitData.bHit) begin
+                    if (HitData.bHit) begin
                         // If there is any hit, shadowing is done.
-                        FinalHitData.bHit <= PHitData.bHit;
+                        ClosestHitData.bHit <= HitData.bHit;
                         NextState <= SHDWS_Done;  
                     end			                 
                     else begin
@@ -267,7 +267,7 @@ module ShadowingUnit (
     RayUnit_FindAnyHit RU(            
 		.r(CurrentInput.ShadowingRay), 		
 		.p(p),
-		.out_hit(PHitData.bHit)		
+		.out_hit(HitData.bHit)		
 	);   
 
     // Setup output for next stage
@@ -275,7 +275,7 @@ module ShadowingUnit (
         .clk(clk),
         .strobe(NextState == SHDWS_Done),         
         .input_data(CurrentInput),
-        .hit_data(FinalHitData),
+        .hit_data(HitData),
         .out(out)
     );    
 endmodule
@@ -294,7 +294,7 @@ module PassOverShadowingUnit (
     input RenderState rs,    
     input output_fifo_full,	    
     
-    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],               
 
@@ -311,7 +311,7 @@ module PassOverShadowingUnit (
 
     RasterOutputData Input, CurrentInput;
 
-    HitData PHitData, FinalHitData;	        
+    HitData HitData;	        
     
     /*
     initial begin	        
@@ -342,7 +342,7 @@ module PassOverShadowingUnit (
                     if (fifo_full) begin                        
                         CurrentInput = Input;                  
                         fifo_full <= 0;
-                        FinalHitData.bHit <= 0;                        
+                        HitData.bHit <= 0;                        
                         NextState <= SHDWS_Done;                        
                     end                    
                 end                   
@@ -366,7 +366,7 @@ module PassOverShadowingUnit (
         .clk(clk),
         .strobe(NextState == SHDWS_Done),         
         .input_data(CurrentInput),
-        .hit_data(FinalHitData),
+        .hit_data(HitData),
         .out(out)
     );
     
@@ -385,7 +385,7 @@ module Shadowing(
     input RasterOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
-    input BVH_Primitive_AABB p[`BVH_AABB_TEST_UNIT_SIZE],
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],           
 
@@ -443,34 +443,5 @@ module Shadowing(
         .leaf(leaf)    
     );
 `endif
-
-    
-    /*
-    ShadowingRayGenerator SRGEN (
-        .clk(clk),
-        .resetn(resetn),	
-        .add_input(add_input),	    
-        .input_data(input_data),                
-        .output_fifo_full(SHDW_FIFO_Full),
-        .valid(SRGEN_Valid),
-        .out(SRGEN_Output),  
-        .fifo_full(fifo_full)
-    );
-
-    ShadowingUnit SHDW (
-        .clk(clk),
-        .resetn(resetn),
-        .add_input(SRGEN_Valid),
-        .input_data(SRGEN_Output),        
-        .rs(rs),        
-        .output_fifo_full(output_fifo_full),
-        .valid(valid),
-        .out(out),
-        .fifo_full(SHDW_FIFO_Full),
-        .start_primitive(start_primitive),
-        .end_primitive(end_primitive),
-        .p(p)    
-    );    
-    */
 
 endmodule

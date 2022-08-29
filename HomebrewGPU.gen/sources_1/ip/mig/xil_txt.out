@@ -1,0 +1,4 @@
+SET_ERROR_CODE 0
+SET_XMDF_PATH ./mig_xmdf.tcl
+SET_PARAMETER component_name mig
+SET_PARAMETER xml_input_file  ./mig/mig.prj

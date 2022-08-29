@@ -280,8 +280,8 @@ module BVHStructure (
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_index_1,
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_bound_0,
     input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_bound_1,
-    output BVH_Primitive_AABB p0[`BVH_AABB_TEST_UNIT_SIZE],
-    output BVH_Primitive_AABB p1[`BVH_AABB_TEST_UNIT_SIZE]    
+    output BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
+    output BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE]    
     );
 
     logic SDReadDataValid;
@@ -484,7 +484,7 @@ module BVHStructure (
     );       
 
     generate
-        for (genvar i = 0; i < `BVH_AABB_TEST_UNIT_SIZE; i = i + 1) begin : QUERY_PRIM
+        for (genvar i = 0; i < `AABB_TEST_UNIT_SIZE; i = i + 1) begin : QUERY_PRIM
             _QueryPrimitive QUERY_PRIM_0(   
                 .raw(AABBRawData[prim_index_0 + i]),    
                 .i(prim_index_0 + i),

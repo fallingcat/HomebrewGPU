@@ -1,0 +1,3 @@
+ClockWizard_clk_wiz.v,verilog,xil_defaultlib,../../../ip/ClockWizard/ClockWizard_clk_wiz.v,incdir="$ref_dir/../../../ipstatic"incdir="../../../ipstatic"
+ClockWizard.v,verilog,xil_defaultlib,../../../ip/ClockWizard/ClockWizard.v,incdir="$ref_dir/../../../ipstatic"incdir="../../../ipstatic"
+glbl.v,Verilog,xil_defaultlib,glbl.v
