@@ -78,6 +78,7 @@ module SetupClosestHitData (
             end                    
         end        
     end
+    
     Fixed_Less A0(hit_data.T, closest_hit_data.T, IsClosestHit);    
 endmodule
 //-------------------------------------------------------------------

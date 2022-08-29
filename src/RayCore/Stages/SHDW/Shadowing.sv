@@ -82,7 +82,7 @@ module ShadowingUnit (
 
     RasterOutputData Input, CurrentInput;
 
-    HitData HitData;	       
+    HitData HitData, AnyHitData;	       
         
     // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
@@ -175,7 +175,7 @@ module ShadowingUnit (
                         CurrentInput = Input;                  
                         fifo_full <= 0;
 
-                        ClosestHitData.bHit <= 0;
+                        AnyHitData.bHit <= 0;
                             
                         PrimitiveFIFO.Top = 0;			
                         PrimitiveFIFO.Bottom = 0;			
@@ -205,7 +205,7 @@ module ShadowingUnit (
                                         
                     if (HitData.bHit) begin
                         // If there is any hit, shadowing is done.
-                        ClosestHitData.bHit <= HitData.bHit;
+                        AnyHitData.bHit <= HitData.bHit;
                         NextState <= SHDWS_Done;  
                     end			                 
                     else begin
@@ -275,7 +275,7 @@ module ShadowingUnit (
         .clk(clk),
         .strobe(NextState == SHDWS_Done),         
         .input_data(CurrentInput),
-        .hit_data(HitData),
+        .hit_data(AnyHitData),
         .out(out)
     );    
 endmodule
@@ -311,7 +311,7 @@ module PassOverShadowingUnit (
 
     RasterOutputData Input, CurrentInput;
 
-    HitData HitData;	        
+    HitData HitData, AnyHitData;	        
     
     /*
     initial begin	        
@@ -342,7 +342,7 @@ module PassOverShadowingUnit (
                     if (fifo_full) begin                        
                         CurrentInput = Input;                  
                         fifo_full <= 0;
-                        HitData.bHit <= 0;                        
+                        AnyHitData.bHit <= 0;                        
                         NextState <= SHDWS_Done;                        
                     end                    
                 end                   
@@ -366,7 +366,7 @@ module PassOverShadowingUnit (
         .clk(clk),
         .strobe(NextState == SHDWS_Done),         
         .input_data(CurrentInput),
-        .hit_data(HitData),
+        .hit_data(AnyHitData),
         .out(out)
     );
     
@@ -443,5 +443,34 @@ module Shadowing(
         .leaf(leaf)    
     );
 `endif
+
+    
+    /*
+    ShadowingRayGenerator SRGEN (
+        .clk(clk),
+        .resetn(resetn),	
+        .add_input(add_input),	    
+        .input_data(input_data),                
+        .output_fifo_full(SHDW_FIFO_Full),
+        .valid(SRGEN_Valid),
+        .out(SRGEN_Output),  
+        .fifo_full(fifo_full)
+    );
+
+    ShadowingUnit SHDW (
+        .clk(clk),
+        .resetn(resetn),
+        .add_input(SRGEN_Valid),
+        .input_data(SRGEN_Output),        
+        .rs(rs),        
+        .output_fifo_full(output_fifo_full),
+        .valid(valid),
+        .out(out),
+        .fifo_full(SHDW_FIFO_Full),
+        .start_primitive(start_primitive),
+        .end_primitive(end_primitive),
+        .p(p)    
+    );    
+    */
 
 endmodule
