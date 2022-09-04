@@ -41,32 +41,31 @@ module Renderer(
     inout SD_CMD,
     input logic [3:0] SD_DAT,	
 
-	// UART tx signal, connected to host-PC's UART-RXD, baud=115200
-    output logic UART_RXD_OUT,
-
 	// inputs...	
 
-    // outputs...  
+    // outputs..
+	output DebugData debug_data,    
+
 	output MemoryWriteRequest fb_mem_w_req,
-	output MemoryWriteRequest bvh_mem_w_req,
-	output [15:0] kcycle_per_frame
+	output MemoryWriteRequest bvh_mem_w_req	
     );			
 
     RenderState RenderState;
 			
 	RendererState State, NextState = RS_Init;
     logic `SCREEN_COORD x, y;				
-    logic FrameFlip;		
+    logic FrameFlip, FrameFinished;		
 	logic BVHStructureInitDone;
 
 	// Performance counter
+	logic [15:0] FrameCounter = 0;
 	logic [9:0] FrameCycleCounter = 0;
 	logic [15:0] FrameKCycleCounter = 0, FrameKCycles = 0;
 
 	logic RS_Strobe, RS_Valid;
 
 	logic TG_Strobe = 0, TG_Reset = 0;
-	ThreadData TG_Output;
+	ThreadData TG_Output[`RAY_CORE_SIZE];
 
     logic RC_Valid[`RAY_CORE_SIZE], RC_FIFOFull[`RAY_CORE_SIZE];	
 	ShaderOutputData ShaderOut[`RAY_CORE_SIZE];    	 
@@ -83,11 +82,18 @@ module Renderer(
 	Fixed3 CameraPos, CameraLook;
 	Fixed CameraFocus;		
 	Fixed Radius, OffsetPosX, OffsetPosZ;
+	logic [15:0] FragmentCount;
 	
 	//logic [8:0] CameraDegree = 0;
 	
     assign flip = FrameFlip;
-	assign kcycle_per_frame = FrameKCycles;	
+	assign debug_data.Number = FrameKCycles;	
+
+	assign debug_data.LED[4] = (State == RS_Wait_VSync);    	    
+	assign debug_data.LED[5] = RC_Valid[0];
+
+	//assign debug_data.UARTDataValid = 1;	
+	//assign debug_data.UARTData = 32;	
 
 	initial begin
 		//$readmemh("E:/MyWork/HomebrewGPU/Prototype/HomebrewGPU/data/CameraPos.txt", CameraPosLUT);		
@@ -171,25 +177,26 @@ module Renderer(
 	*/
 
 	always_ff @(posedge clk, negedge resetn) begin			
-		if (!resetn) begin
+		if (!resetn) begin			
 			NextState <= RS_Init;			
 		end
 		else begin						
 			FrameCycleCounter = FrameCycleCounter + 1;
 			if (FrameCycleCounter == 0) begin
-				FrameKCycleCounter <= FrameKCycleCounter + 1;
+				FrameKCycleCounter = FrameKCycleCounter + 1;
 			end					
 
-			State = NextState;
+			State = NextState;	    
 
             case (State)
-                default: begin
+                default: begin					
 					NextState <= RS_Init;
                 end
 
                 (RS_Init): begin												
 					FrameFlip <= 0;														
 					//ModelDegree <= 0;
+					FrameCounter <= 0;
 					
 					TG_Strobe <= 0;
 					TG_Reset <= 0;					                                        					
@@ -220,6 +227,7 @@ module Renderer(
 					TG_Strobe <= 0;
 					TG_Reset <= 1;	
 					RS_Strobe <= 1;
+					FragmentCount <= 0;
 					NextState <= RS_RenderStateSetup;											
 				end
 
@@ -228,6 +236,8 @@ module Renderer(
 					if (RS_Valid) begin
 						//RenderState <= NextFrameRS;
 						//AnimateModel();							
+						TG_Strobe <= 1;
+						TG_Reset <= 0;	
 						NextState <= RS_Render; 							
 					end					
 				end				
@@ -235,19 +245,35 @@ module Renderer(
 				(RS_Render): begin					                   
 					TG_Strobe <= 1;
 					TG_Reset <= 0;	
-					RS_Strobe <= 0;									
+					RS_Strobe <= 0;
+					/*
+					// TODO : Find out why this way doesn't work. 
+					for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin                                						
+						if (RC_Valid[i]) begin						
+							FragmentCount = FragmentCount + 1;
+							if (FragmentCount >= (`FRAMEBUFFER_WIDTH * `FRAMEBUFFER_HEIGHT)) begin								
+								FrameCounter = FrameCounter + 1;
+								FrameKCycles = FrameKCycleCounter;
+								NextState <= RS_Wait_VSync;
+							end
+						end						
+					end
+					*/
+
 					for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin                                
-						if (TG_Output.Finished && RC_Valid[i] && (ShaderOut[i].x == `FRAMEBUFFER_WIDTH - 1) && (ShaderOut[i].y == `FRAMEBUFFER_HEIGHT - 1)) begin
+						if (FrameFinished && RC_Valid[i] && (ShaderOut[i].x == `FRAMEBUFFER_WIDTH - 1) && (ShaderOut[i].y == `FRAMEBUFFER_HEIGHT - 1)) begin						
+							// Compute the total cycles of a frame
+							FrameCounter = FrameCounter + 1;
 							FrameKCycles <= FrameKCycleCounter;
 							NextState <= RS_Wait_VSync;
-						end
+						end												
 					end				
                 end              
 
                 (RS_Wait_VSync): begin					
                     TG_Strobe <= 0;
-					TG_Reset <= 1;      
-					RS_Strobe <= 0;                                  
+					TG_Reset <= 0;      
+					RS_Strobe <= 0;    					                          
                     if (!vsync) begin		
 						NextState <= RS_FrameSetup;
                     end
@@ -273,129 +299,39 @@ module Renderer(
 	);
 	
 	// Emit fragment threads for ray cores to process.
-	ThreadGenerator#(1) TG(
+	ThreadGenerator TG(
     	.clk(clk),
 		.resetn(resetn),	    	
 		.strobe(TG_Strobe),
-		.reset(TG_Reset),
-		.period(1'd1),		
+		.reset(TG_Reset),		
+		.debug_data(debug_data),
 		.rs(RenderState),
 		.output_fifo_full(RC_FIFOFull),
     	.x0(x),
-    	.y0(y),       	
-    	.out(TG_Output)
+    	.y0(y),	
+		.frame_finished(FrameFinished),
+    	.thread_out(TG_Output)
     );
 
 	generate
-        for (genvar i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin : RAYENGINE			
-			`ifdef BASIC_RAY_CORE
-				BasicRayCore RAYCORE(
+        for (genvar i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin : CORE_ARRY
+			`ifdef DEBUG_CORE
+				DebugCore DEBGCORE(
 					.clk(clk),
 					.resetn(resetn),		          
 					// controls...
-					.add_input(TG_Output.DataValid[i]),
+					.add_input(TG_Output[i].DataValid),
 					// inputs...
-					.input_data(TG_Output.RayCoreInput[i]),                
+					.input_data(TG_Output[i].RayCoreInput),                
 					.rs(RenderState),	
-					.p0(P0[i]),
-					.p1(P1[i]),
+					.frame_counter(FrameCounter),
 					// outputs...		
 					.fifo_full(RC_FIFOFull[i]),        
 					.valid(RC_Valid[i]),
-					.shader_out(ShaderOut[i]),        
-					.start_primitive_0(StartPrimitiveIndex0[i]),
-					.end_primitive_0(EndPrimitiveIndex0[i]),		
-					.start_primitive_1(StartPrimitiveIndex1[i]),
-					.end_primitive_1(EndPrimitiveIndex1[i])		
-				);
-			`elsif SIMPLE_RAY_CORE				
-				BVHPrimitiveUnit PU(   
-					.offset(RenderState.PositionOffset),
-					.start0(StartPrimitiveIndex0[i]),         
-					.threshold0(EndPrimitiveIndex0[i]),                
-					.start1(StartPrimitiveIndex1[i]),         
-					.threshold1(EndPrimitiveIndex1[i]),        
-					.p0(P0[i]),
-					.p1(P1[i])
-				);
-
-				SimpleRayCore RAYCORE(
-					.clk(clk),
-					.resetn(resetn),		          
-					// controls...
-					.add_input(TG_Output.DataValid[i]),
-					// inputs...
-					.input_data(TG_Output.RayCoreInput[i]),                
-					.rs(RenderState),	
-					.p0(P0[i]),
-					.p1(P1[i]),
-					// outputs...		
-					.fifo_full(RC_FIFOFull[i]),        
-					.valid(RC_Valid[i]),
-					.shader_out(ShaderOut[i]),        
-					.start_primitive_0(StartPrimitiveIndex0[i]),
-					.end_primitive_0(EndPrimitiveIndex0[i]),		
-					.start_primitive_1(StartPrimitiveIndex1[i]),
-					.end_primitive_1(EndPrimitiveIndex1[i])					
-				);
-			`elsif TEST_RAY_CORE
-				BVHStructure BVHSTRUCTURE(   
-					.clk(clk),	    
-					.resetn(resetn), 
-
-					.sd_clk(sd_clk),
-					.SD_SCK(SD_SCK),
-					.SD_CMD(SD_CMD),
-					.SD_DAT(SD_DAT),
-					.UART_RXD_OUT(UART_RXD_OUT),
-
-					.mem_w_req(bvh_mem_w_req),
-					
-					.init_done(BVHStructureInitDone),
-					.offset(RenderState.PositionOffset),
-
-					.node_index_0(BVHNodeIndex0[i]), 					
-					.node_index_1(BVHNodeIndex1[i]), 
-					.node_0(BVHNode0[i]),   
-					.node_1(BVHNode1[i]),    
-					.leaf_0(BVHLeaf0[i]),   
-					.leaf_1(BVHLeaf1[i]),
-
-					.prim_index_0(StartPrimitiveIndex0[i]),
-					.prim_index_1(StartPrimitiveIndex1[i]),
-					.prim_bound_0(EndPrimitiveIndex0[i]),
-					.prim_bound_1(EndPrimitiveIndex1[i]),
-					.p0(P0[i]),
-					.p1(P1[i])     
+					.shader_out(ShaderOut[i])
 				);			
-
-				TestRayCore RAYCORE(
-					.clk(clk),
-					.resetn(resetn),
-
-					.add_input(TG_Output.DataValid[i]),					
-					.input_data(TG_Output.RayCoreInput[i]),                
-
-					.rs(RenderState),					
-					.fifo_full(RC_FIFOFull[i]),        
-					.valid(RC_Valid[i]),
-					.shader_out(ShaderOut[i]),        
-					
-					.node_index_0(BVHNodeIndex0[i]),
-					.node_index_1(BVHNodeIndex1[i]),
-					.node_0(BVHNode0[i]),
-					.node_1(BVHNode1[i]),		
-					.leaf_0(BVHLeaf0[i]),
-					.leaf_1(BVHLeaf1[i]),
-
-					.start_primitive_0(StartPrimitiveIndex0[i]),
-					.end_primitive_0(EndPrimitiveIndex0[i]),		
-					.start_primitive_1(StartPrimitiveIndex1[i]),
-					.end_primitive_1(EndPrimitiveIndex1[i]),
-					.p0(P0[i]),
-					.p1(P1[i])
-				);
-			`else
+			`else	
+			`ifdef IMPLEMENT_BVH_TRAVERSAL
 				BVHStructure BVHSTRUCTURE(   
 					.clk(clk),	    
 					.resetn(resetn), 
@@ -404,34 +340,43 @@ module Renderer(
 					.SD_SCK(SD_SCK),
 					.SD_CMD(SD_CMD),
 					.SD_DAT(SD_DAT),
-					.UART_RXD_OUT(UART_RXD_OUT),
+
+					.debug_data(debug_data),
 
 					.mem_w_req(bvh_mem_w_req),
 					
 					.init_done(BVHStructureInitDone),
 					.offset(RenderState.PositionOffset),
 
-					.node_index_0(BVHNodeIndex0[i]), 					
-					.node_index_1(BVHNodeIndex1[i]), 
-					.node_0(BVHNode0[i]),   
-					.node_1(BVHNode1[i]),    
-					.leaf_0(BVHLeaf0[i]),   
-					.leaf_1(BVHLeaf1[i]),
+					.node_index_0(BVHNodeIndex0), 					
+					.node_index_1(BVHNodeIndex1), 
+					.node_0(BVHNode0),   
+					.node_1(BVHNode1),    
+					.leaf_0(BVHLeaf0),   
+					.leaf_1(BVHLeaf1)
+				);			
+			`endif
 
-					.prim_index_0(StartPrimitiveIndex0[i]),
-					.prim_index_1(StartPrimitiveIndex1[i]),
-					.prim_bound_0(EndPrimitiveIndex0[i]),
-					.prim_bound_1(EndPrimitiveIndex1[i]),
-					.p0(P0[i]),
-					.p1(P1[i])     
+				PrimitiveUnit PRIM(   
+					.clk(clk),	    
+					.resetn(resetn), 
+
+					.offset(RenderState.PositionOffset),
+
+					.prim_index_0(StartPrimitiveIndex0),
+					.prim_index_1(StartPrimitiveIndex1),
+					.prim_bound_0(EndPrimitiveIndex0),
+					.prim_bound_1(EndPrimitiveIndex1),
+					.p0(P0),
+					.p1(P1)     
 				);			
 
 				RayCore RAYCORE(
 					.clk(clk),
 					.resetn(resetn),
 
-					.add_input(TG_Output.DataValid[i]),					
-					.input_data(TG_Output.RayCoreInput[i]),                
+					.add_input(TG_Output[i].DataValid),					
+					.input_data(TG_Output[i].RayCoreInput),                
 
 					.rs(RenderState),					
 					.fifo_full(RC_FIFOFull[i]),        

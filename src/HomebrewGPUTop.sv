@@ -84,6 +84,7 @@ module HomebrewGPUTop(
     logic [7:0] Digit;   
     logic SDReadDataValid;
     logic [7:0] SDReadData;
+    DebugData DebugData;
 		
 	// Output Color
     assign VGA_R = Blank ? 0 : (FinalColor.Channel[0] >> 4);
@@ -101,6 +102,8 @@ module HomebrewGPUTop(
     assign AN = Digit;
 
     assign SD_RESET = 1'b0;
+
+    assign LED = DebugData.LED;    
 
 	//assign VGA_R = Blank ? 0 : (FinalColor.Channel[0] * 15) >> 8;
 	//assign VGA_G = Blank ? 0 : (FinalColor.Channel[1] * 15) >> 8;
@@ -130,14 +133,7 @@ module HomebrewGPUTop(
         .clk_in1(CLK100MHZ),
         .resetn(CPU_RESETN),        
         .clk_200(CLK200MHZ)
-    );
-
-    /*
-    ClockDividedBy3 Div33M(
-        .clk(CLK100MHZ),
-        .clk2(CLK100MHZ),
-        .o_clk(CLK33MHZ)
-    );*/
+    );    
     
     ClockDivider Div50M(
         .clk(CLK100MHZ),
@@ -183,13 +179,11 @@ module HomebrewGPUTop(
         .SD_CMD(SD_CMD),
         .SD_DAT(SD_DAT),
 
-        .UART_RXD_OUT(UART_RXD_OUT),
-        
-		.x(x), 
+        .x(x), 
 		.y(y), 
 		.color(FinalColor),		
-        .kcycle_per_frame(KCyclePerFrame),    
-        .LED(LED),
+
+        .debug_data(DebugData),
 		.ddr2_cs_n(ddr2_cs_n),
         .ddr2_addr(ddr2_addr),
         .ddr2_ba(ddr2_ba),
@@ -208,10 +202,30 @@ module HomebrewGPUTop(
 
     HexDisplay_7_Seg DISPLAY_SEG(
         .clk(CLK_GPU),
-        .number(KCyclePerFrame),        
+        //.number(KCyclePerFrame),        
+        .number(DebugData.Number),
         .seg(Seg),
         .digit(Digit)
     );
+
+    /*
+    uart_tx #(
+    	.UART_CLK_DIV(434),     // UART baud rate = clk freq/(2*UART_TX_CLK_DIV)
+                           	    // modify UART_TX_CLK_DIV to change the UART baud
+                           	    // for example, when clk=100MHz, UART_TX_CLK_DIV=868, then baud=100MHz/(2*868)=115200
+                           	    // 115200 is a typical SPI baud rate for UART                                        
+    	.FIFO_ASIZE(12),        // UART TX buffer size=2^FIFO_ASIZE bytes, Set it smaller if your FPGA doesn't have enough BRAM
+    	.BYTE_WIDTH(1),
+    	.MODE(2)
+	) UART_TX(
+    	.clk(CLK50MHZ),
+    	.rst_n(resetn),    
+    	.wreq(DebugData.UARTDataValid),
+    	.wgnt(),
+    	.wdata(DebugData.UARTData),    
+    	.o_uart_tx(UART_RXD_OUT)
+	);
+    */
 
     /*
     // For input and output definitions of this module, see SDFileReader.sv

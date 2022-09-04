@@ -199,6 +199,7 @@ module RasterUnit (
     //
     //-------------------------------------------------------------------    
     function QueueGlobalPrimitives();
+        PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_AABB;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_GLOBAL_PRIMITIVE_START_IDX;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 3;		    
         PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
@@ -237,6 +238,11 @@ module RasterUnit (
                     valid <= 0;
                     BU_Strobe <= 0;
                     BU_RestartStrobe <= 0;                    
+
+                    StartPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;
+                    EndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
+                    RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;         
+
                     if (fifo_full) begin                        
                         CurrentInput = Input;                  
                         fifo_full <= 0;
@@ -244,10 +250,8 @@ module RasterUnit (
 
                         // Init BVH traversal
                         PrimitiveFIFO.Top = 0;			
-                        PrimitiveFIFO.Bottom = 0;			
-                        StartPrimitiveIndex = 0;
-                        EndPrimitiveIndex = 0;             
-                        RealEndPrimitiveIndex = 0;           
+                        PrimitiveFIFO.Bottom = 0;			                        
+
                         BU_Strobe <= 1;                                                                    
                         QueueGlobalPrimitives();    
                         NextState <= RASTS_Rasterize;                                                   
@@ -259,7 +263,7 @@ module RasterUnit (
                     valid <= 0;                    
                     BU_Strobe <= 0;       
 
-                    // Queue possible hit primitives.  
+                    // Queue possible hit primitives if there is any.  
                     QueuePrimitiveGroup();
                     
                     if (StartPrimitiveIndex != EndPrimitiveIndex) begin			                        
@@ -281,6 +285,10 @@ module RasterUnit (
                 end                        
 
                 (RASTS_Done): begin
+                    StartPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;
+                    EndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
+                    RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;         
+
                     if (!output_fifo_full) begin
                         valid <= 1;          
                         BU_Strobe <= 0;
@@ -323,7 +331,7 @@ module RasterUnit (
 	);    
 
     // Setup HitData for the closest hit
-    SetupClosestHitData SETUPHITDATA( 
+    SetupClosestHitData SETUP_HITDATA( 
         .clk(clk),	         
         .reset(ResetClosestHitData),        
         .color(rs.ClearColor),                

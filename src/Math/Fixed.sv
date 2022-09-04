@@ -466,7 +466,7 @@ module Fixed_Add(
     output Fixed o
     );
     always_comb begin
-        o <= Fixed_Add(a, b);        
+        o = Fixed_Add(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -478,7 +478,7 @@ module Fixed_Sub(
     output Fixed o
     );
     always_comb begin
-        o <= Fixed_Sub(a, b);        
+        o = Fixed_Sub(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -490,7 +490,7 @@ module Fixed_Mul(
     output Fixed o
     );
     always_comb begin
-        o <= Fixed_Mul(a, b);        
+        o = Fixed_Mul(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -502,7 +502,7 @@ module Fixed_LSft(
     output Fixed o
     );
     always_comb begin
-        o <= Fixed_LSft(a, b);        
+        o = Fixed_LSft(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -514,7 +514,7 @@ module Fixed_Min(
     output Fixed o
     );
     always_comb begin
-        o <= Fixed_Min(a, b);        
+        o = Fixed_Min(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -526,7 +526,7 @@ module Fixed_Max(
     output Fixed o
     );
     always_comb begin
-        o <= Fixed_Max(a, b);        
+        o = Fixed_Max(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -538,7 +538,7 @@ module Fixed_Greater(
     output logic o
     );
     always_comb begin
-        o <= Fixed_Greater(a, b);        
+        o = Fixed_Greater(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -550,7 +550,7 @@ module Fixed_GreaterEqual(
     output logic o
     );
     always_comb begin
-        o <= Fixed_GreaterEqual(a, b);        
+        o = Fixed_GreaterEqual(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -562,7 +562,7 @@ module Fixed_Less(
     output logic o
     );
     always_comb begin
-        o <= Fixed_Less(a, b);        
+        o = Fixed_Less(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -574,7 +574,7 @@ module Fixed_LessEqual(
     output logic o
     );
     always_comb begin
-        o <= Fixed_LessEqual(a, b);        
+        o = Fixed_LessEqual(a, b);        
     end
 endmodule
 //-------------------------------------------------------------------
@@ -586,7 +586,7 @@ module Fixed_Equal(
     output logic o
     );
     always_comb begin
-        o <= Fixed_Equal(a, b);        
+        o = Fixed_Equal(a, b);        
     end
 endmodule
 

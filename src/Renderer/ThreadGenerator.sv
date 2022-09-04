@@ -57,122 +57,264 @@ module _RasterRayDir(
     Fixed3_Sub A6(O, camera_pos, out);
 endmodule
 
-module ThreadGenerator#(
-    parameter PEROID_WIDTH = 10
-    ) (
+module _CoreThreadDataGenerator(
+    input strobe,
+    input logic output_fifo_full,        
+    input RenderState rs,    
+    input logic `SCREEN_COORD x,
+    input logic `SCREEN_COORD y,     
+
+    output DebugData debug_data,    
+    output ThreadData thread_out        
+    );	    
+
+    always_comb begin
+        if (strobe && !output_fifo_full) begin                                                       
+            // Prepare the thraed data
+            thread_out.RayCoreInput.x <= x;
+            thread_out.RayCoreInput.y <= y;                      
+            thread_out.RayCoreInput.BounceLevel <= 0;
+            thread_out.RayCoreInput.LastColor <= _RGB8(0, 0, 0);                                        
+            thread_out.RayCoreInput.RasterRay.MinT <= _Fixed(0);
+            thread_out.RayCoreInput.RasterRay.MaxT <= _Fixed(1000);                                                  
+            thread_out.RayCoreInput.RasterRay.Orig <= rs.Camera.Pos;
+            thread_out.RayCoreInput.RasterRay.PI <= `NULL_PRIMITIVE_INDEX; // means the raster ray is from camera                          
+            // Indicate that the thread data for currey core is ready
+            thread_out.DataValid = 1;
+        end   
+        else begin
+            thread_out.DataValid = 0;
+        end                                                                                
+    end
+
+    _RasterRayDir RAS_DIR(
+        .x(x),
+        .y(y),
+        .vp_h(rs.ViewportHeight),
+        .camera_pos(rs.Camera.Pos),    
+        .camera_blc(rs.Camera.BLC),
+        .camera_rh(rs.Camera.RH),
+        .camera_rv(rs.Camera.RV),
+        .camera_cub(rs.Camera.CUB),    
+        .camera_cvb(rs.Camera.CVB),        
+        .out(thread_out.RayCoreInput.RasterRay.Dir)              
+    );             
+endmodule
+
+module ThreadGenerator(
     input clk,
 	input resetn,	
     input strobe,
-    input reset,    
-    input [PEROID_WIDTH-1:0] period,        
+    input reset,        
     input output_fifo_full[`RAY_CORE_SIZE],        
     input RenderState rs,    
     input logic `SCREEN_COORD x0,
-    input logic `SCREEN_COORD y0,       
-    output ThreadData out
+    input logic `SCREEN_COORD y0,   
+    output DebugData debug_data,    
+    output logic frame_finished,
+    output ThreadData thread_out[`RAY_CORE_SIZE]
     );		
     
-    logic [`RAY_CORE_SIZE_WIDTH:0] CurrentRayCore;
-    ThreadGeneratorState State, NextState = TGS_Generate;    
-    logic `SCREEN_COORD CX = 0, CY = 0;    
-    logic [PEROID_WIDTH-1:0] IssueTimer = 0;    
-    logic Finished = 0;    
-    
-    assign out.Finished = Finished;
-    
+    logic [4:0] CurrentCore = 0;
+    ThreadGeneratorState State, NextState = TGS_Init;    
+    logic `SCREEN_COORD CX, CY;        
+    Fixed3 Dir;    
+    ThreadData ThreadOut;
+    logic CoreStrobe;   
+
+    assign debug_data.LED[0] = strobe;
+    assign debug_data.LED[1] = (State == TGS_Generate);   
+    assign debug_data.LED[2] = thread_out[CurrentCore].DataValid;    	    
+    assign debug_data.LED[3] = !frame_finished;    	    
+
+    //assign debug_data.Number = thread_out[CurrentCore].RayCoreInput.y;
+
 	always_ff @( posedge clk, negedge resetn) begin		                       
-        if (!resetn) begin
-            CurrentRayCore <= 0;
-            CX <= x0;
-            CY <= y0;                                    
-            IssueTimer <= 0;
-            Finished <= 0;            
+        if (!resetn) begin            
+            CurrentCore = 0;
             NextState <= TGS_Init;
+            CX = x0;
+            CY = y0;       
+            CoreStrobe = 0;   
+            frame_finished = 0;                                   
 		end
 		else begin
-            IssueTimer <= IssueTimer + 1;
-            if (IssueTimer >= period) begin
-                IssueTimer <= 0;
-            end            
-            
-            State = NextState;           
+            for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin
+                thread_out[i].DataValid = 0;
+            end                                     
+
+            State = NextState;                
 
             case (State)
                 TGS_Init: begin
-                    for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin
-                        out.DataValid[i] <= 0;
-                    end                           
-
-                    if (reset) begin
-                        CurrentRayCore <= 0;
+                    CoreStrobe = 0;
+                    if (reset) begin                                                
+                        CurrentCore <= 0;
                         CX <= x0;
-                        CY <= y0;                             
-                        IssueTimer <= 0;
-                        Finished <= 0;                        
+                        CY <= y0;                                                
+                        frame_finished <= 0;      
+                        NextState <= TGS_Wait;
+                    end
+                end
+
+                TGS_Wait: begin
+                    CoreStrobe <= 0;
+                    if (strobe) begin                                              
                         NextState <= TGS_Generate;
                     end            
                 end
 
-                TGS_Generate: begin                                        
-                    Finished <= 0;
+                TGS_Generate: begin         
+                    CoreStrobe <= 1;                    
+                    thread_out[CurrentCore] = ThreadOut;    
+                    if (thread_out[CurrentCore].DataValid) begin                           
+                        NextState = TGS_NextThread;               
+                    end                                        
+                end    
 
-                    for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin
-                        out.DataValid[i] <= 0;                        
-                    end        
+                TGS_NextThread: begin
+                    NextState <= TGS_Generate;                    
+                    CoreStrobe <= 0;                     
 
-                    if ((strobe && IssueTimer == 0) || (CX == x0 && CY == y0)) begin                        
-                        if (!output_fifo_full[CurrentRayCore]) begin
-                            out.DataValid[CurrentRayCore] <= 1;                                                         
-                            out.RayCoreInput[CurrentRayCore].x <= CX;
-                            out.RayCoreInput[CurrentRayCore].y <= CY;                      
+                    // Core index for next clock
+                    CurrentCore = CurrentCore + 1;
+                    if (CurrentCore >= `RAY_CORE_SIZE) begin
+                        CurrentCore = CurrentCore - `RAY_CORE_SIZE;
+                    end                                                                                            
+                    
+                    CX = CX + 1;
+                    if (CX >= `FRAMEBUFFER_WIDTH) begin
+                        CX = x0;
+                        CY = CY + 1;							                           
+                        if (CY >= `FRAMEBUFFER_HEIGHT) begin
+                            frame_finished = 1;                             
+                            NextState <= TGS_Init; 
+                        end
+                    end	                       
+                end        
+                               
 
-                            out.RayCoreInput[CurrentRayCore].BounceLevel <= 0;
-                            out.RayCoreInput[CurrentRayCore].LastColor <= _RGB8(0, 0, 0);                                          
-                            
-                            out.RayCoreInput[CurrentRayCore].RasterRay.MinT <= _Fixed(0);
-                            out.RayCoreInput[CurrentRayCore].RasterRay.MaxT <= _Fixed(1000);                                                  
-                            out.RayCoreInput[CurrentRayCore].RasterRay.Orig <= rs.Camera.Pos;
-                            out.RayCoreInput[CurrentRayCore].RasterRay.PI <= `NULL_PRIMITIVE_INDEX; // means the raster ray is from camera                          
-
-                            CurrentRayCore = CurrentRayCore + 1;
-                            if (CurrentRayCore >= `RAY_CORE_SIZE) begin
-                                CurrentRayCore = CurrentRayCore - `RAY_CORE_SIZE;
+                /*
+                TGS_Generate: begin         
+                    CoreStrobe <= 1;                    
+                    thread_out[CurrentCore] = ThreadOut;    
+                    if (thread_out[CurrentCore].DataValid) begin                           
+                        CoreStrobe <= 0;
+                        CurrentCore = CurrentCore + 1;
+                        if (CurrentCore >= `RAY_CORE_SIZE) begin
+                            CurrentCore = CurrentCore - `RAY_CORE_SIZE;
+                        end                                                                                            
+                        
+                        CX = CX + 1;
+                        if (CX >= `FRAMEBUFFER_WIDTH) begin
+                            CX = x0;
+                            CY = CY + 1;							                           
+                            if (CY >= `FRAMEBUFFER_HEIGHT) begin
+                                frame_finished <= 1;                             
+                                NextState <= TGS_Init; 
                             end
-                            
-                            // Prepare next fragment thread
-                            CX = CX + 1;
-                            if (CX >= `FRAMEBUFFER_WIDTH) begin
-                                CX = 0;
-                                CY = CY + 1;							
-                            end	
-
-                            if (CY >= `FRAMEBUFFER_HEIGHT && CX >= 2) begin
-                                Finished <= 1;        
-                                NextState <= TGS_Init;                
-                            end                               
-                        end                                                                                   
-                    end                       
-                end                
+                        end	                                      
+                    end                                        
+                end       
+                */         
+                
+                default: begin
+                    NextState <= TGS_Init;                
+                end                        
             endcase                            
 		end
 	end	
 
-    // Compute direction of generated raster rays. 
-    generate
-        for (genvar i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin : RAS_DIR
-            _RasterRayDir RAS_DIR(
-                .x(out.RayCoreInput[i].x),
-                .y(out.RayCoreInput[i].y),
-                .vp_h(rs.ViewportHeight),
-                .camera_pos(rs.Camera.Pos),    
-                .camera_blc(rs.Camera.BLC),
-                .camera_rh(rs.Camera.RH),
-                .camera_rv(rs.Camera.RV),
-                .camera_cub(rs.Camera.CUB),    
-                .camera_cvb(rs.Camera.CVB),        
-                .out(out.RayCoreInput[i].RasterRay.Dir)              
-            );         
-        end
-    endgenerate  
-
+    _CoreThreadDataGenerator CORE_THREAD_DATA(
+        .strobe(CoreStrobe),	
+        .output_fifo_full(output_fifo_full[CurrentCore]),
+        .rs(rs),    
+        .x(CX),
+        .y(CY),
+        .debug_data(debug_data),
+        .thread_out(ThreadOut)
+    );	    
 endmodule
+
+
+/*
+// TODO : Find out why DataValid will last 2 cycles.
+module ThreadGenerator(
+    input clk,
+	input resetn,	
+    input strobe,
+    input reset,        
+    input output_fifo_full[`RAY_CORE_SIZE],        
+    input RenderState rs,    
+    input logic `SCREEN_COORD x0,
+    input logic `SCREEN_COORD y0,   
+    output DebugData debug_data,    
+    output logic frame_finished,
+    output ThreadData thread_out[`RAY_CORE_SIZE]
+    );		    
+    
+    ThreadGeneratorState State, NextState = TGS_Init;    
+    logic `SCREEN_COORD CX, CY;        
+    
+	always_ff @( posedge clk, negedge resetn) begin		                       
+        if (!resetn) begin
+            NextState <= TGS_Init;
+            CX = x0;
+            CY = y0;       
+            frame_finished = 0;                                   
+		end
+		else begin
+            State = NextState;                
+
+            case (State)
+                TGS_Init: begin
+                    thread_out[0].DataValid <= 0;
+                    if (reset) begin                                                
+                        CX = x0;
+                        CY = y0;                                                
+                        frame_finished = 0;      
+                        NextState <= TGS_Wait;
+                    end
+                end
+
+                TGS_Wait: begin
+                    thread_out[0].DataValid <= 0;
+                    if (strobe) begin
+                        NextState <= TGS_Generate;
+                    end            
+                end
+
+                TGS_Generate: begin   
+                    if (!output_fifo_full[0]) begin                       
+                        thread_out[0].DataValid <= 1;
+                        thread_out[0].RayCoreInput.x <= CX;
+                        thread_out[0].RayCoreInput.y <= CY;                                                
+                        NextState <= TGS_NextThread;                    
+                    end                    
+                    else begin
+                        thread_out[0].DataValid <= 0;
+                    end
+                end                                 
+
+                TGS_NextThread: begin
+                    NextState <= TGS_Generate;
+                    thread_out[0].DataValid <= 0;                    
+                    CX = CX + 1;
+                    if (CX >= `FRAMEBUFFER_WIDTH) begin
+                        CX = 0;
+                        CY = CY + 1;							                           
+                        if (CY >= `FRAMEBUFFER_HEIGHT) begin
+                            frame_finished = 1;                             
+                            NextState <= TGS_Init; 
+                        end
+                    end	                       
+                end       
+                
+                default: begin
+                    NextState <= TGS_Init;                
+                end                        
+            endcase                            
+		end
+	end	
+endmodule
+*/

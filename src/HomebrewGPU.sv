@@ -41,21 +41,18 @@ module HomebrewGPU(
     input `SCREEN_COORD x,
     input `SCREEN_COORD y,
 
-    // outputs...  
-    output RGB8 color,
-    output [15:0] kcycle_per_frame,    
+    // outputs...      
+    output RGB8 color,    
 
     // SD signals
     input sd_clk,
     output logic SD_SCK,
     inout SD_CMD,
     input logic [3:0] SD_DAT,
-
-    // UART tx signal, connected to host-PC's UART-RXD, baud=115200
-    output logic UART_RXD_OUT,
-
+    
     // LED signals
-    output [15:0] LED,
+    //output [15:0] LED,    
+    output DebugData debug_data,    
     
 	// DDR2 chip signals
     inout [15:0]ddr2_dq,
@@ -77,11 +74,7 @@ module HomebrewGPU(
     logic FrameFlip;    
     MemoryReadRequest FB_MemRRequest;
     MemoryWriteRequest BVH_MemWRequest, FB_MemWRequest, MC_Write_Request;	
-    MemoryReadData ReadData;    
-    logic [15:0] KCyclePerFrame;    
-    
-    
-    assign kcycle_per_frame = KCyclePerFrame;
+    MemoryReadData ReadData;        
     
     always_ff @(posedge clk) begin	
         MC_Write_Request = FB_MemWRequest;
@@ -114,6 +107,8 @@ module HomebrewGPU(
         .resetn(resetn),
 		.vsync(vsync),	
         .flip(FrameFlip),
+                
+        .debug_data(debug_data),    
 
         .up(up),
         .down(down),
@@ -123,11 +118,7 @@ module HomebrewGPU(
         .sd_clk(sd_clk),
         .SD_SCK(SD_SCK),
         .SD_CMD(SD_CMD),
-        .SD_DAT(SD_DAT),
-
-        .UART_RXD_OUT(UART_RXD_OUT),
-
-        .kcycle_per_frame(KCyclePerFrame),
+        .SD_DAT(SD_DAT),        
 
         .fb_mem_w_req(FB_MemWRequest),
 	    .bvh_mem_w_req(BVH_MemWRequest)        
@@ -162,7 +153,7 @@ module HomebrewGPU(
         .request_r(FB_MemRRequest),             
         .request_w(MC_Write_Request),             
         .read_data(ReadData),                        
-        .LED(LED),
+        .debug_data(debug_data),        
         // DDR2 chip signals
         .ddr2_dq(ddr2_dq),
         .ddr2_dqs_n(ddr2_dqs_n),

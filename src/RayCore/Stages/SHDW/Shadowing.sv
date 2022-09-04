@@ -133,6 +133,7 @@ module ShadowingUnit (
     //
     //-------------------------------------------------------------------    
     function QueueGlobalPrimitives();
+        PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_AABB;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_MODEL_RAW_DATA_SIZE;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 3;		    
         PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
@@ -179,9 +180,10 @@ module ShadowingUnit (
                             
                         PrimitiveFIFO.Top = 0;			
                         PrimitiveFIFO.Bottom = 0;			
-                        StartPrimitiveIndex = 0;
-                        EndPrimitiveIndex = 0;             
-                        RealEndPrimitiveIndex = 0;             
+
+                        StartPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;
+                        EndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
+                        RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
                         
                         if (CurrentInput.SurfaceType == ST_None) begin    
                             // Shadowing is done since the fragment is not a primitive.
@@ -228,7 +230,11 @@ module ShadowingUnit (
                     end
                 end      
                 
-                SHDWS_Done: begin                   
+                SHDWS_Done: begin               
+                    StartPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;
+                    EndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
+                    RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;         
+                        
                     if (!output_fifo_full) begin
                         valid <= 1;          
                         BU_Strobe <= 0;

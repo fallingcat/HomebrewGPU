@@ -58,8 +58,8 @@ module FindClosestHit#(
     parameter WIDTH = `AABB_TEST_UNIT_SIZE
     ) ( 
     input Ray r,    
-    input HitData p_hit_data[WIDTH],	
-    output HitData final_hit_data		
+    input HitData hit_data[WIDTH],	
+    output HitData closest_hit_data		
     );             
     HitData HitData[WIDTH+1];
 
@@ -72,13 +72,14 @@ module FindClosestHit#(
         for (genvar i = 0; i < WIDTH; i = i + 1) begin : MIN_HIT
             MinHitMux MIN_HIT(
                 .h1(HitData[i]),
-                .h2(p_hit_data[i]),
+                .h2(hit_data[i]),
                 .out(HitData[i+1])                
             );         
         end
     endgenerate  
 
-    assign final_hit_data = HitData[WIDTH];               
+    assign closest_hit_data = HitData[WIDTH];               
+    //assign r.MaxT = closest_hit_data.T;
 endmodule
 //-------------------------------------------------------------------
 // Find the closest Hit. 
@@ -99,7 +100,7 @@ endmodule
 module FindAnyHit#(
     parameter WIDTH = `AABB_TEST_UNIT_SIZE
     ) (      
-    input HitData p_hit_data[WIDTH],	
+    input HitData hit_data[WIDTH],	
     output logic out_hit		
     );          
 
@@ -113,8 +114,8 @@ module FindAnyHit#(
         for (genvar i = 0; i < WIDTH; i = i + 1) begin : HITMUX
             HitMux HITMUX(
                 .h1(Hit[i]),
-                .h2(p_hit_data[i].bHit),
-                .s(p_hit_data[i].bHit),
+                .h2(hit_data[i].bHit),
+                .s(hit_data[i].bHit),
                 .out(Hit[i+1])                
             );         
         end
@@ -133,7 +134,7 @@ module RayUnit_FindClosestHit (
     output HitData hit_data
 	);
 
-    HitData PHitData[`AABB_TEST_UNIT_SIZE];    
+    HitData HitData[`AABB_TEST_UNIT_SIZE];    
 
     // AABB test
     generate
@@ -144,7 +145,7 @@ module RayUnit_FindClosestHit (
                 .st(p[i].SurfaceType),
                 .aabb(p[i].Aabb),
                 .color(p[i].Color),
-                .hit_data(PHitData[i])                
+                .hit_data(HitData[i])                
             );         
         end
     endgenerate 
@@ -155,8 +156,8 @@ module RayUnit_FindClosestHit (
     // Process all HitData and output the FinalHitData
     FindClosestHit#(`AABB_TEST_UNIT_SIZE) PRP(
         .r(r),
-        .p_hit_data(PHitData),	
-        .final_hit_data(hit_data)		
+        .hit_data(HitData),	
+        .closest_hit_data(hit_data)		
     );  
 endmodule
 //-------------------------------------------------------------------
@@ -169,7 +170,7 @@ module RayUnit_FindAnyHit (
     output logic out_hit
 	);
 
-    HitData PHitData[`AABB_TEST_UNIT_SIZE];    
+    HitData HitData[`AABB_TEST_UNIT_SIZE];    
 
     // AABB test
     generate
@@ -180,7 +181,7 @@ module RayUnit_FindAnyHit (
                 .st(p[i].SurfaceType),
                 .aabb(p[i].Aabb),
                 .color(p[i].Color),
-                .hit_data(PHitData[i])                
+                .hit_data(HitData[i])                
             );         
         end
     endgenerate  
@@ -190,7 +191,7 @@ module RayUnit_FindAnyHit (
 
     // Process all HitData and output the FinalHitData
     FindAnyHit PRP(        
-        .p_hit_data(PHitData),	
+        .hit_data(HitData),	
         .out_hit(out_hit)		
     );  
 

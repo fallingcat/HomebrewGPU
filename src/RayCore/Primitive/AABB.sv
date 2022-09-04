@@ -33,9 +33,51 @@ module _AABBFindT0T1(
     output Fixed t0[3],
     output Fixed t1[3]
     );  
-
     Fixed3 T0, T1;
+
+    always_comb begin
+        T0 = Fixed3_Sub(aabb.Min, orig);
+        //t0[0] = Fixed_Mul(invdir.Dim[0], T0.Dim[0]);
+        //t0[1] = Fixed_Mul(invdir.Dim[1], T0.Dim[1]);
+        //t0[2] = Fixed_Mul(invdir.Dim[2], T0.Dim[2]);
+
+        T1 = Fixed3_Sub(aabb.Max, orig);
+        //t1[0] = Fixed_Mul(invdir.Dim[0], T1.Dim[0]);
+        //t1[1] = Fixed_Mul(invdir.Dim[1], T1.Dim[1]);
+        //t1[2] = Fixed_Mul(invdir.Dim[2], T1.Dim[2]);
+    end
+
+    Fixed_Mul A0_0(
+        .a(invdir.Dim[0]), 
+        .b(T0.Dim[0]), 
+        .o(t0[0]));
+
+    Fixed_Mul A0_1(
+        .a(invdir.Dim[1]), 
+        .b(T0.Dim[1]), 
+        .o(t0[1]));
+
+    Fixed_Mul A0_2(
+        .a(invdir.Dim[2]), 
+        .b(T0.Dim[2]), 
+        .o(t0[2]));
+
+    Fixed_Mul A1_0(
+        .a(invdir.Dim[0]), 
+        .b(T1.Dim[0]), 
+        .o(t1[0]));
+
+    Fixed_Mul A1_1(
+        .a(invdir.Dim[1]), 
+        .b(T1.Dim[1]), 
+        .o(t1[1]));
+
+    Fixed_Mul A1_2(
+        .a(invdir.Dim[2]), 
+        .b(T1.Dim[2]), 
+        .o(t1[2]));
     
+    /*
     Fixed3_Sub A0(
         .a(aabb.Min), 
         .b(orig), 
@@ -75,7 +117,7 @@ module _AABBFindT0T1(
         .a(invdir.Dim[2]), 
         .b(T1.Dim[2]), 
         .o(t1[2]));
-        
+        */        
 endmodule
 //-------------------------------------------------------------------
 //
@@ -192,6 +234,7 @@ module _AABBFindHit(
     logic HitCondition;
 
     always_comb begin        
+        // If primitive is not null
         if (pi[`PRIMITIVE_INDEX_WIDTH - 1] == 0 && ray_vi != pi && HitCondition) begin
             hit_data.bHit <= 1;
             hit_data.PI <= pi; 

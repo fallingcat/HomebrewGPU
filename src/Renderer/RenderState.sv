@@ -226,12 +226,12 @@ module RenderState (
 					NextState <= RSS_Init;
 				end
 
-				(RSS_Init): begin	
-					valid <= 0;
+				(RSS_Init): begin						
 					Norm_Strobe <= 0;	
 					AnimationStrobe <= 0;	
 
 					if (strobe) begin		
+						valid <= 0;
 						AnimationStrobe <= 1;	
                         NextState <= RSS_Done;					
 					end
@@ -243,7 +243,7 @@ module RenderState (
 					valid <= 1;
 					NextState <= RSS_Init;
 				end
-			endcase			
+			endcase
 		end
 	end
 

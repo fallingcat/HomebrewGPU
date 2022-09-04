@@ -151,16 +151,11 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 // [39:8]           = Start Primitive Index
 // [7:0]            = Number of Primitives
 `define BVH_LEAF_RAW_DATA_WIDTH             232
-`define BVH_AABB_RAW_DATA_SIZE              220
-`define BVH_SPHERE_RAW_DATA_SIZE            4
-`define BVH_MODEL_RAW_DATA_SIZE             207
+
 `define BVH_NODE_RAW_DATA_SIZE              20
 `define BVH_LEAF_RAW_DATA_SIZE              20
-`define BVH_GLOBAL_PRIMITIVE_START_IDX      `BVH_MODEL_RAW_DATA_SIZE
 
-//`define NO_BVH_MODEL                        1
 `define BVH_LEAF_AABB_TEST                  1
-`define USE_BVH_UNIT                        1
 `define BVH_NODE_INDEX_WIDTH                16
 `define BVH_PRIMITIVE_INDEX_WIDTH           32
 `define BVH_PRIMITIVE_AMOUNT_WIDTH          8
@@ -168,12 +163,24 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_NODE_STACK_SIZE_WIDTH            6
 `define BVH_NODE_STACK_SIZE                  2**`BVH_NODE_STACK_SIZE_WIDTH
 
+// Primitives ---------------------------------------------------------------------
+//`define LOAD_BVH_MODEL                      1
+`ifdef LOAD_BVH_MODEL
+    `define BVH_MODEL_RAW_DATA_SIZE         207
+`else
+    `define BVH_MODEL_RAW_DATA_SIZE         0
+`endif
+`define BVH_GLOBAL_PRIMITIVE_START_IDX      `BVH_MODEL_RAW_DATA_SIZE
+`define BVH_AABB_RAW_DATA_SIZE              `BVH_MODEL_RAW_DATA_SIZE + 10
+`define BVH_SPHERE_RAW_DATA_SIZE            4
+
 // Ray Core --------------------------------------------------------------
 //`define IMPLEMENT_SHADOWING                 1
 //`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
+//`define IMPLEMENT_BVH_TRAVERSAL             1
 
-//`define BASIC_RAY_CORE                     1
+//`define DEBUG_CORE                            1
 //`define SIMPLE_RAY_CORE                     1
 //`define TEST_RAY_CORE                       1
 `define RAY_CORE_SIZE_WIDTH                 0
@@ -193,6 +200,13 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 
 
 // Configuration >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+typedef struct {
+    logic [15:0] LED;
+    logic [15:0] Number;    
+    // UART tx signal, connected to host-PC's UART-RXD, baud=115200 @ 50MHz    
+    logic UARTDataValid;
+    logic [7:0] UARTData;
+} DebugData;
 
 typedef enum logic [3:0] {
    State_Ready              = 4'd0, 
@@ -441,6 +455,7 @@ typedef struct {
 } BVH_Primitive_Triangle;
 
 typedef struct {
+    PrimitiveType PrimType;
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitive;
     logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] NumPrimitives;
 } PrimitiveGroup;
@@ -453,6 +468,12 @@ typedef struct {
 
 // Ray Core >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 typedef enum logic [3:0] {
+    DCS_Init                = 4'd0,     
+    DCS_Render              = 4'd1,     
+    DCS_Done                = 4'd2    
+} DebugCoreState;
+
+typedef enum logic [3:0] {
     RGS_Init                = 4'd0,     
     RGS_Generate            = 4'd1,     
     RGS_Done                = 4'd2    
@@ -461,7 +482,9 @@ typedef enum logic [3:0] {
 // Thread Generator -------------------------------------------
 typedef enum logic [3:0] {
     TGS_Init                = 4'd0, 
-    TGS_Generate            = 4'd1        
+    TGS_Wait                = 4'd1,
+    TGS_Generate            = 4'd2,         
+    TGS_NextThread          = 4'd3          
 } ThreadGeneratorState;
 
 typedef struct { 
@@ -472,9 +495,8 @@ typedef struct {
 } RasterInputData;
 
 typedef struct { 
-    logic DataValid[`RAY_CORE_SIZE];       
-    RasterInputData RayCoreInput[`RAY_CORE_SIZE];           
-    logic Finished;
+    logic DataValid;       
+    RasterInputData RayCoreInput;
 } ThreadData;
 
 // Raster -----------------------------------------------------

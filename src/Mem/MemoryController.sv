@@ -307,7 +307,7 @@ module MemoryController(
     input MemoryReadRequest request_r,
     input MemoryWriteRequest request_w,
     output MemoryReadData read_data,        
-    output [15:0] LED,
+    output DebugData debug_data,
 
     // DDR2 chip signals
     inout [15:0] ddr2_dq,
@@ -342,25 +342,25 @@ module MemoryController(
     
     logic TaskValid, ReadTaskStrobe, WriteTaskStrobe, TaskBusy;
     
-    assign LED[0] = 0;
-    assign LED[1] = 0;
-    assign LED[2] = 0;
-    assign LED[3] = 0;
-    assign LED[4] = 0;    
+    //assign LED[0] = 0;
+    //assign LED[1] = 0;
+    //assign LED[2] = 0;
+    //assign LED[3] = 0;
+    //assign LED[4] = 0;    
 
-    assign LED[5] = 0;        
-    assign LED[6] = 0;        
+    //assign LED[5] = 0;        
+    //assign LED[6] = 0;        
 
-    assign LED[7] = (WriteTaskQueueTop != WriteTaskQueueBottom);    
-    assign LED[8] = (ReadTaskQueueTop != ReadTaskQueueBottom);    
-    assign LED[9] = ReadStrobe;   
-    assign LED[10] = WriteStrobe; 
+    //assign LED[7] = (WriteTaskQueueTop != WriteTaskQueueBottom);    
+    //assign LED[8] = (ReadTaskQueueTop != ReadTaskQueueBottom);    
+    //assign LED[9] = ReadStrobe;   
+    //assign LED[10] = WriteStrobe; 
 
-    assign LED[11] = TaskValid;    
-    assign LED[12] = TaskBusy;    
-    assign LED[13] = (State == MCS_Read);    
-    assign LED[14] = (State == MCS_Write);    
-    assign LED[15] = (State == MCS_Wait);       
+    //assign LED[11] = TaskValid;    
+    //assign LED[12] = TaskBusy;    
+    //assign LED[13] = (State == MCS_Read);    
+    //assign LED[14] = (State == MCS_Write);    
+    //assign LED[15] = (State == MCS_Wait);       
         
     function Reset();    
         ReadTaskQueueTop <= 0;
