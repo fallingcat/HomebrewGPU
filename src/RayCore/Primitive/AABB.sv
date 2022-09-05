@@ -35,6 +35,7 @@ module _AABBFindT0T1(
     );  
     Fixed3 T0, T1;
 
+    /*
     always_comb begin
         T0 = Fixed3_Sub(aabb.Min, orig);
         //t0[0] = Fixed_Mul(invdir.Dim[0], T0.Dim[0]);
@@ -46,7 +47,7 @@ module _AABBFindT0T1(
         //t1[1] = Fixed_Mul(invdir.Dim[1], T1.Dim[1]);
         //t1[2] = Fixed_Mul(invdir.Dim[2], T1.Dim[2]);
     end
-
+    
     Fixed_Mul A0_0(
         .a(invdir.Dim[0]), 
         .b(T0.Dim[0]), 
@@ -75,9 +76,9 @@ module _AABBFindT0T1(
     Fixed_Mul A1_2(
         .a(invdir.Dim[2]), 
         .b(T1.Dim[2]), 
-        .o(t1[2]));
+        .o(t1[2]));       
+    */
     
-    /*
     Fixed3_Sub A0(
         .a(aabb.Min), 
         .b(orig), 
@@ -117,7 +118,7 @@ module _AABBFindT0T1(
         .a(invdir.Dim[2]), 
         .b(T1.Dim[2]), 
         .o(t1[2]));
-        */        
+                
 endmodule
 //-------------------------------------------------------------------
 //

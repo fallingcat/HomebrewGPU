@@ -313,93 +313,97 @@ module Renderer(
     	.thread_out(TG_Output)
     );
 
+`ifdef DEBUG_CORE
 	generate
         for (genvar i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin : CORE_ARRY
-			`ifdef DEBUG_CORE
-				DebugCore DEBGCORE(
-					.clk(clk),
-					.resetn(resetn),		          
-					// controls...
-					.add_input(TG_Output[i].DataValid),
-					// inputs...
-					.input_data(TG_Output[i].RayCoreInput),                
-					.rs(RenderState),	
-					.frame_counter(FrameCounter),
-					// outputs...		
-					.fifo_full(RC_FIFOFull[i]),        
-					.valid(RC_Valid[i]),
-					.shade_out(ShadeOut[i])
-				);			
-			`else	
-			`ifdef IMPLEMENT_BVH_TRAVERSAL
-				BVHStructure BVHSTRUCTURE(   
-					.clk(clk),	    
-					.resetn(resetn), 
+			DebugCore DEBGCORE(
+				.clk(clk),
+				.resetn(resetn),		          
+				// controls...
+				.add_input(TG_Output[i].DataValid),
+				// inputs...
+				.input_data(TG_Output[i].RayCoreInput),                
+				.rs(RenderState),	
+				.frame_counter(FrameCounter),
+				// outputs...		
+				.fifo_full(RC_FIFOFull[i]),        
+				.valid(RC_Valid[i]),
+				.shade_out(ShadeOut[i])
+			);	
+		end
+	endgenerate  		
+`else	
+	`ifdef IMPLEMENT_BVH_TRAVERSAL
+		BVHStructure BVHSTRUCTURE(   
+			.clk(clk),	    
+			.resetn(resetn), 
 
-					.sd_clk(sd_clk),
-					.SD_SCK(SD_SCK),
-					.SD_CMD(SD_CMD),
-					.SD_DAT(SD_DAT),
+			.sd_clk(sd_clk),
+			.SD_SCK(SD_SCK),
+			.SD_CMD(SD_CMD),
+			.SD_DAT(SD_DAT),
 
-					.debug_data(debug_data),
+			.debug_data(debug_data),
 
-					.mem_w_req(bvh_mem_w_req),
-					
-					.init_done(BVHStructureInitDone),
-					.offset(RenderState.PositionOffset),
+			.mem_w_req(bvh_mem_w_req),
+			
+			.init_done(BVHStructureInitDone),
+			.offset(RenderState.PositionOffset),
 
-					.node_index_0(BVHNodeIndex0), 					
-					.node_index_1(BVHNodeIndex1), 
-					.node_0(BVHNode0),   
-					.node_1(BVHNode1),    
-					.leaf_0(BVHLeaf0),   
-					.leaf_1(BVHLeaf1)
-				);			
-			`endif
+			.node_index_0(BVHNodeIndex0), 					
+			.node_index_1(BVHNodeIndex1), 
+			.node_0(BVHNode0),   
+			.node_1(BVHNode1),    
+			.leaf_0(BVHLeaf0),   
+			.leaf_1(BVHLeaf1)
+		);			
+	`endif
 
-				PrimitiveUnit PRIM(   
-					.clk(clk),	    
-					.resetn(resetn), 
+	PrimitiveUnit PRIM(   
+		.clk(clk),	    
+		.resetn(resetn), 
 
-					.offset(RenderState.PositionOffset),
+		.offset(RenderState.PositionOffset),
 
-					.prim_index_0(StartPrimitiveIndex0),
-					.prim_index_1(StartPrimitiveIndex1),
-					.prim_bound_0(EndPrimitiveIndex0),
-					.prim_bound_1(EndPrimitiveIndex1),
-					.p0(P0),
-					.p1(P1)     
-				);			
+		.prim_index_0(StartPrimitiveIndex0),
+		.prim_index_1(StartPrimitiveIndex1),
+		.prim_bound_0(EndPrimitiveIndex0),
+		.prim_bound_1(EndPrimitiveIndex1),
+		.p0(P0),
+		.p1(P1)     
+	);			
 
-				RayCore RAYCORE(
-					.clk(clk),
-					.resetn(resetn),
+	generate
+        for (genvar i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin : CORE_ARRY
+			RayCore RAYCORE(
+				.clk(clk),
+				.resetn(resetn),
 
-					.add_input(TG_Output[i].DataValid),					
-					.input_data(TG_Output[i].RayCoreInput),                
+				.add_input(TG_Output[i].DataValid),					
+				.input_data(TG_Output[i].RayCoreInput),                
 
-					.rs(RenderState),					
-					.fifo_full(RC_FIFOFull[i]),        
-					.valid(RC_Valid[i]),
-					.shade_out(ShadeOut[i]),        
-					
-					.node_index_0(BVHNodeIndex0[i]),
-					.node_index_1(BVHNodeIndex1[i]),
-					.node_0(BVHNode0[i]),
-					.node_1(BVHNode1[i]),		
-					.leaf_0(BVHLeaf0[i]),
-					.leaf_1(BVHLeaf1[i]),
+				.rs(RenderState),					
+				.fifo_full(RC_FIFOFull[i]),        
+				.valid(RC_Valid[i]),
+				.shade_out(ShadeOut[i]),        
+				
+				.node_index_0(BVHNodeIndex0[i]),
+				.node_index_1(BVHNodeIndex1[i]),
+				.node_0(BVHNode0[i]),
+				.node_1(BVHNode1[i]),		
+				.leaf_0(BVHLeaf0[i]),
+				.leaf_1(BVHLeaf1[i]),
 
-					.start_primitive_0(StartPrimitiveIndex0[i]),
-					.end_primitive_0(EndPrimitiveIndex0[i]),		
-					.start_primitive_1(StartPrimitiveIndex1[i]),
-					.end_primitive_1(EndPrimitiveIndex1[i]),
-					.p0(P0[i]),
-					.p1(P1[i])
-				);                
-			`endif
+				.start_primitive_0(StartPrimitiveIndex0[i]),
+				.end_primitive_0(EndPrimitiveIndex0[i]),		
+				.start_primitive_1(StartPrimitiveIndex1[i]),
+				.end_primitive_1(EndPrimitiveIndex1[i]),
+				.p0(P0[i]),
+				.p1(P1[i])
+			);                			
         end
     endgenerate  
+`endif
 
 	FrameBufferWriter FBW(
 		.clk(clk),	

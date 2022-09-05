@@ -65,8 +65,27 @@ module RayCore(
     logic SHAD_REF_Valid;
     SurfaceInputData SHAD_REF_Output;
 		
-    // 3 pipeline stages : SURF -> SHDW -> SHAD, the SHAD output will be redirected back to SURF for trflection
+    // 3 pipeline stages : SURF -> SHDW -> SHAD, the SHAD output will be redirected back to SURF for the reflection/refraction
     // For example : (SURF -> SHDW -> SHAD) -> (SURF -> SHDW -> SHAD) -> (SURF -> SHDW -> SHAD) -> Frame Buffer for 3 bounces
+    //------------------------------------------------------------------------------------
+    //              SURF            SHDW            SHAD                Frame Buffer
+    //------------------------------------------------------------------------------------
+    //  c0          Frag_N          x               x
+    //------------------------------------------------------------------------------------
+    //  c1          Frag_N+1        Frag_N          x
+    //------------------------------------------------------------------------------------
+    //  c3          Frag_N+2        Frag_N+1        Frag_N
+    //------------------------------------------------------------------------------------
+    //  c4          Frag_N+3        Frag_N+2        Frag_N+1            Frag_N
+    //------------------------------------------------------------------------------------
+    //  c5          Frag_N+1_Ref    Frag_N+3        Frag_N+2
+    //------------------------------------------------------------------------------------
+    //  c6          Frag_N+4        Frag_N+1_Ref    Frag_N+3            Frag_N+2
+    //------------------------------------------------------------------------------------
+    //  c7          Frag_N+5        Frag_N+4        Frag_N+1_Ref        Frag_N+3
+    //------------------------------------------------------------------------------------
+    //  c8          Frag_N+6        Frag_N+5        Frag_N+4            Frag_N+1_Ref
+    //------------------------------------------------------------------------------------
     Surface SURF(    
         .clk(clk),
         .resetn(resetn),

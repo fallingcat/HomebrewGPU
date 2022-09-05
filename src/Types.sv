@@ -183,7 +183,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 //`define DEBUG_CORE                            1
 //`define SIMPLE_RAY_CORE                     1
 //`define TEST_RAY_CORE                       1
-`define RAY_CORE_SIZE_WIDTH                 0
+`define RAY_CORE_SIZE_WIDTH                 1
 `define RAY_CORE_SIZE                       2**`RAY_CORE_SIZE_WIDTH
 
 `define AABB_TEST_UNIT_SIZE_WIDTH           0
