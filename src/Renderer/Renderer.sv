@@ -68,7 +68,7 @@ module Renderer(
 	ThreadData TG_Output[`RAY_CORE_SIZE];
 
     logic RC_Valid[`RAY_CORE_SIZE], RC_FIFOFull[`RAY_CORE_SIZE];	
-	ShaderOutputData ShaderOut[`RAY_CORE_SIZE];    	 
+	ShadeOutputData ShadeOut[`RAY_CORE_SIZE];    	 
 
 	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex0[`RAY_CORE_SIZE], EndPrimitiveIndex0[`RAY_CORE_SIZE];
 	BVH_Primitive_AABB P0[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    
@@ -108,7 +108,7 @@ module Renderer(
 		RenderState.ViewportHeight = `FRAMEBUFFER_HEIGHT;	
 
 		RenderState.Lighting = 1;
-		RenderState.Shadowing = 1;	
+		RenderState.Shadow = 1;	
 		RenderState.MaxBounceLevel = 3;
 
 		RenderState.ClearColor.Channel[0] = 8'd110;
@@ -261,7 +261,7 @@ module Renderer(
 					*/
 
 					for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin                                
-						if (FrameFinished && RC_Valid[i] && (ShaderOut[i].x == `FRAMEBUFFER_WIDTH - 1) && (ShaderOut[i].y == `FRAMEBUFFER_HEIGHT - 1)) begin						
+						if (FrameFinished && RC_Valid[i] && (ShadeOut[i].x == `FRAMEBUFFER_WIDTH - 1) && (ShadeOut[i].y == `FRAMEBUFFER_HEIGHT - 1)) begin						
 							// Compute the total cycles of a frame
 							FrameCounter = FrameCounter + 1;
 							FrameKCycles <= FrameKCycleCounter;
@@ -328,7 +328,7 @@ module Renderer(
 					// outputs...		
 					.fifo_full(RC_FIFOFull[i]),        
 					.valid(RC_Valid[i]),
-					.shader_out(ShaderOut[i])
+					.shade_out(ShadeOut[i])
 				);			
 			`else	
 			`ifdef IMPLEMENT_BVH_TRAVERSAL
@@ -381,7 +381,7 @@ module Renderer(
 					.rs(RenderState),					
 					.fifo_full(RC_FIFOFull[i]),        
 					.valid(RC_Valid[i]),
-					.shader_out(ShaderOut[i]),        
+					.shade_out(ShadeOut[i]),        
 					
 					.node_index_0(BVHNodeIndex0[i]),
 					.node_index_1(BVHNodeIndex1[i]),
@@ -406,7 +406,7 @@ module Renderer(
 		.resetn(resetn),
         .strobe(RC_Valid),        
 		.flip(FrameFlip),	
-		.data(ShaderOut),
+		.data(ShadeOut),
 		.mem_request(fb_mem_w_req)
 	);        		  
 

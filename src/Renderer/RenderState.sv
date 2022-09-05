@@ -132,7 +132,7 @@ module RenderState (
 		rs.ViewportHeight <= `FRAMEBUFFER_HEIGHT;	
 
 		rs.Lighting <= 1;
-		rs.Shadowing <= 1;	
+		rs.Shadow <= 1;	
 		rs.MaxBounceLevel <= `RS_MAX_BOUNCE_LEVEL;
 
 		rs.ClearColor.Channel[0] <= 8'd110;
@@ -291,7 +291,7 @@ module RenderState (
                         rs.ViewportHeight <= `FRAMEBUFFER_HEIGHT;	
 
                         rs.Lighting <= 1;
-                        rs.Shadowing <= 1;	
+                        rs.Shadow <= 1;	
                         rs.MaxBounceLevel <= 4;
 
                         rs.ClearColor.Channel[0] <= 8'd110;

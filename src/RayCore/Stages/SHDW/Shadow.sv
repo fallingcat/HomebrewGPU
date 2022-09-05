@@ -25,12 +25,12 @@
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module ShadowingCombineOutput (    
+module ShadowCombineOutput (    
     input clk,
     input strobe,    
-    input RasterOutputData input_data,
+    input SurfaceOutputData input_data,
     input HitData hit_data,
-    output ShadowingOutputData out
+    output ShadowOutputData out
     );
     always_ff @(posedge clk) begin
         if (strobe) begin
@@ -53,7 +53,7 @@ endmodule
 // Then use Ray unit to find the any hit.
 // Finally decide if the fragment is in shadow or not.
 //-------------------------------------------------------------------    
-module ShadowingUnit (
+module ShadowUnit (
     input clk,
     input resetn,
 
@@ -61,7 +61,7 @@ module ShadowingUnit (
     input add_input,
 
     // inputs...    
-    input RasterOutputData input_data,    
+    input SurfaceOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
 
@@ -72,15 +72,15 @@ module ShadowingUnit (
     // outputs...      
     output logic fifo_full,
     output logic valid,
-    output ShadowingOutputData out,    
+    output ShadowOutputData out,    
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index        
     );
 
-    ShadowingState State, NextState = SHDWS_Init;     
+    ShadowState State, NextState = SHDWS_Init;     
 
-    RasterOutputData Input, CurrentInput;
+    SurfaceOutputData Input, CurrentInput;
 
     HitData HitData, AnyHitData;	       
         
@@ -186,19 +186,19 @@ module ShadowingUnit (
                         RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
                         
                         if (CurrentInput.SurfaceType == ST_None) begin    
-                            // Shadowing is done since the fragment is not a primitive.
+                            // Shadow is done since the fragment is not a primitive.
                             NextState <= SHDWS_Done;                            
                         end
                         else begin       
                             // Init BVH traversal
                             BU_Strobe <= 1;                                                                        
                             QueueGlobalPrimitives();                                                            
-                            NextState <= SHDWS_Rasterize;          
+                            NextState <= SHDWS_AnyHit;          
                         end                                                                                                
                     end                    
                 end   
                 
-                SHDWS_Rasterize: begin
+                SHDWS_AnyHit: begin
                     valid <= 0;                    
                     BU_Strobe <= 0;     
 
@@ -257,7 +257,7 @@ module ShadowingUnit (
         .strobe(BU_Strobe),    
         .restart_strobe(BU_RestartStrobe),
         .offset(rs.PositionOffset),
-        .r(CurrentInput.ShadowingRay),
+        .r(CurrentInput.ShadowRay),
 
         .start_prim(LeafStartPrim),    
         .num_prim(LeafNumPrim),        
@@ -271,13 +271,13 @@ module ShadowingUnit (
     
     // Find any hit from all possible primitives
     RayUnit_FindAnyHit RU(            
-		.r(CurrentInput.ShadowingRay), 		
+		.r(CurrentInput.ShadowRay), 		
 		.p(p),
 		.out_hit(HitData.bHit)		
 	);   
 
     // Setup output for next stage
-    ShadowingCombineOutput CO ( 
+    ShadowCombineOutput CO ( 
         .clk(clk),
         .strobe(NextState == SHDWS_Done),         
         .input_data(CurrentInput),
@@ -288,7 +288,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module PassOverShadowingUnit (
+module PassOverShadowUnit (
     input clk,
     input resetn,
 
@@ -296,7 +296,7 @@ module PassOverShadowingUnit (
     input add_input,
 
     // inputs...    
-    input RasterOutputData input_data,    
+    input SurfaceOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
     
@@ -307,15 +307,15 @@ module PassOverShadowingUnit (
     // outputs...      
     output logic fifo_full,
     output logic valid,
-    output ShadowingOutputData out,    
+    output ShadowOutputData out,    
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index               
     );
 
-    ShadowingState State, NextState = SHDWS_Init;     
+    ShadowState State, NextState = SHDWS_Init;     
 
-    RasterOutputData Input, CurrentInput;
+    SurfaceOutputData Input, CurrentInput;
 
     HitData HitData, AnyHitData;	        
     
@@ -368,7 +368,7 @@ module PassOverShadowingUnit (
     end            
     
     // Setup output for next stage
-    ShadowingCombineOutput CO ( 
+    ShadowCombineOutput CO ( 
         .clk(clk),
         .strobe(NextState == SHDWS_Done),         
         .input_data(CurrentInput),
@@ -380,7 +380,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module Shadowing(
+module Shadow(
     input clk,
     input resetn,
 
@@ -388,7 +388,7 @@ module Shadowing(
     input add_input,
 
     // inputs...
-    input RasterOutputData input_data,    
+    input SurfaceOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
@@ -398,18 +398,18 @@ module Shadowing(
     // outputs...  
     output logic fifo_full,
     output logic valid,
-    output ShadowingOutputData out,
+    output ShadowOutputData out,
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index            
     );
 
     logic SRGEN_Valid, SHDW_FIFO_Full; 
-    RasterOutputData SRGEN_Output;    
+    SurfaceOutputData SRGEN_Output;    
 
 
 `ifdef IMPLEMENT_SHADOWING
-    ShadowingUnit SHDW(
+    ShadowUnit SHDW(
         .clk(clk),
         .resetn(resetn),
         .add_input(add_input),
@@ -429,7 +429,7 @@ module Shadowing(
         .leaf(leaf)    
     );
 `else
-    PassOverShadowingUnit SHDW(
+    PassOverShadowUnit SHDW(
         .clk(clk),
         .resetn(resetn),
         .add_input(add_input),
@@ -452,7 +452,7 @@ module Shadowing(
 
     
     /*
-    ShadowingRayGenerator SRGEN (
+    ShadowRayGenerator SRGEN (
         .clk(clk),
         .resetn(resetn),	
         .add_input(add_input),	    
@@ -463,7 +463,7 @@ module Shadowing(
         .fifo_full(fifo_full)
     );
 
-    ShadowingUnit SHDW (
+    ShadowUnit SHDW (
         .clk(clk),
         .resetn(resetn),
         .add_input(SRGEN_Valid),

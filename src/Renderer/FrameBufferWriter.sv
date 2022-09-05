@@ -29,7 +29,7 @@ module FrameBufferWriter (
     input resetn,
     input strobe[`RAY_CORE_SIZE],
     input flip,	    
-    input ShaderOutputData data[`RAY_CORE_SIZE],
+    input ShadeOutputData data[`RAY_CORE_SIZE],
     output MemoryWriteRequest mem_request    
     );        
     logic [`MC_CACHE_SET_SIZE_WIDTH-1:0] CacheSetIndex;

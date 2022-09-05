@@ -23,7 +23,7 @@
 `include "../Math/FixedNorm.sv"
 `include "../Math/FixedNorm3.sv"
     
-module _RasterRayDir(
+module _SurfaceRayDir(
     input logic `SCREEN_COORD x,
     input logic `SCREEN_COORD y,
     input logic `SCREEN_COORD vp_h,
@@ -75,10 +75,10 @@ module _CoreThreadDataGenerator(
             thread_out.RayCoreInput.y <= y;                      
             thread_out.RayCoreInput.BounceLevel <= 0;
             thread_out.RayCoreInput.LastColor <= _RGB8(0, 0, 0);                                        
-            thread_out.RayCoreInput.RasterRay.MinT <= _Fixed(0);
-            thread_out.RayCoreInput.RasterRay.MaxT <= _Fixed(1000);                                                  
-            thread_out.RayCoreInput.RasterRay.Orig <= rs.Camera.Pos;
-            thread_out.RayCoreInput.RasterRay.PI <= `NULL_PRIMITIVE_INDEX; // means the raster ray is from camera                          
+            thread_out.RayCoreInput.SurfaceRay.MinT <= _Fixed(0);
+            thread_out.RayCoreInput.SurfaceRay.MaxT <= _Fixed(1000);                                                  
+            thread_out.RayCoreInput.SurfaceRay.Orig <= rs.Camera.Pos;
+            thread_out.RayCoreInput.SurfaceRay.PI <= `NULL_PRIMITIVE_INDEX; // means the raster ray is from camera                          
             // Indicate that the thread data for currey core is ready
             thread_out.DataValid = 1;
         end   
@@ -87,7 +87,7 @@ module _CoreThreadDataGenerator(
         end                                                                                
     end
 
-    _RasterRayDir RAS_DIR(
+    _SurfaceRayDir SURF_DIR(
         .x(x),
         .y(y),
         .vp_h(rs.ViewportHeight),
@@ -97,7 +97,7 @@ module _CoreThreadDataGenerator(
         .camera_rv(rs.Camera.RV),
         .camera_cub(rs.Camera.CUB),    
         .camera_cvb(rs.Camera.CVB),        
-        .out(thread_out.RayCoreInput.RasterRay.Dir)              
+        .out(thread_out.RayCoreInput.SurfaceRay.Dir)              
     );             
 endmodule
 

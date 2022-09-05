@@ -33,13 +33,13 @@ module DebugCore(
     input logic add_input,
 
     // inputs...    
-    input RasterInputData input_data,        
+    input SurfaceInputData input_data,        
     input RenderState rs,        
     input logic [15:0] frame_counter,
     // outputs...  
     output logic fifo_full,        
     output logic valid,
-    output ShaderOutputData shader_out
+    output ShadeOutputData shade_out
     );       
     
     DebugCoreState State, NextState = DCS_Init;       
@@ -63,22 +63,22 @@ module DebugCore(
 
                 DCS_Render: begin  
                     fifo_full = 1;                   
-                    shader_out.x = input_data.x;                   
-                    shader_out.y = input_data.y;
+                    shade_out.x = input_data.x;                   
+                    shade_out.y = input_data.y;
                     if (frame_counter[6]) begin
                         if (input_data.x[4] ^ input_data.y[4]) begin
-                            shader_out.Color = _RGB8(255, 0, 0);
+                            shade_out.Color = _RGB8(255, 0, 0);
                         end
                         else begin
-                            shader_out.Color = _RGB8(0, 255, 0);
+                            shade_out.Color = _RGB8(0, 255, 0);
                         end
                     end
                     else begin
                         if (input_data.x[4] ^ input_data.y[4]) begin
-                            shader_out.Color = _RGB8(255, 255, 0);
+                            shade_out.Color = _RGB8(255, 255, 0);
                         end
                         else begin
-                            shader_out.Color = _RGB8(0, 255, 255);
+                            shade_out.Color = _RGB8(0, 255, 255);
                         end
                     end
                     NextState <= DCS_Done;

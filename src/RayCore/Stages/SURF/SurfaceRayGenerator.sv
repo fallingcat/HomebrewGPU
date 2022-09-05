@@ -26,7 +26,7 @@
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module RastaerRayGenerator(    
+module SurfaceRayGenerator(    
     input clk,
 	input resetn,	
 
@@ -35,21 +35,21 @@ module RastaerRayGenerator(
     input add_ref_input,	        
 
     // inputs...
-    input RasterInputData input_data,        
-    input RasterInputData ref_input_data,       
+    input SurfaceInputData input_data,        
+    input SurfaceInputData ref_input_data,       
     input output_fifo_full,	        
 
     // outputs...    
     output logic fifo_full,         
     output logic ref_fifo_full,         
     output logic valid,
-    output RasterInputData out    
+    output SurfaceInputData out    
     );		
 	
     RayGeneratorState State, NextState = RGS_Init;    
 
-    RasterInputData Input;        
-    RasterInputData RefInput;    
+    SurfaceInputData Input;        
+    SurfaceInputData RefInput;    
     
     Fixed3 InvDir;    
 	logic InvDir_Valid, InvDir_Strobe;          
@@ -116,7 +116,7 @@ module RastaerRayGenerator(
 				(RGS_Generate): begin                    
                     InvDir_Strobe <= 0;
                     if (InvDir_Valid) begin                          
-                        out.RasterRay.InvDir <= InvDir;                                                                        
+                        out.SurfaceRay.InvDir <= InvDir;                                                                        
                         NextState <= RGS_Done;
                     end                                                               
                 end
@@ -137,7 +137,7 @@ module RastaerRayGenerator(
 		.clk(clk),
         .resetn(resetn),
 		.strobe(InvDir_Strobe),
-		.v(out.RasterRay.Dir), 
+		.v(out.SurfaceRay.Dir), 
 		.valid(InvDir_Valid),
 		.ov(InvDir)
 	);    

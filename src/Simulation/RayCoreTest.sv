@@ -173,7 +173,7 @@ module RayCoreTest;
 		RenderState.ViewportWidth = `FRAMEBUFFER_WIDTH;	
 		RenderState.ViewportHeight = `FRAMEBUFFER_HEIGHT;	
 
-		RenderState.Shadowing = 0;
+		RenderState.Shadow = 0;
 
 		RenderState.ClearColor.Channel[0] = 8'd0;
         RenderState.ClearColor.Channel[1] = 8'd127;

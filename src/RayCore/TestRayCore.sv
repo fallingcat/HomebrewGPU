@@ -30,15 +30,15 @@ module TestCombineOutput (
     input valid,
     input Fixed3 light_dir, 
     input Fixed3 light_invdir,             
-    input RasterInputData input_data,
+    input SurfaceInputData input_data,
     input HitData hit_data,    
-    output RasterOutputData out
+    output SurfaceOutputData out
     );
     always_ff @(posedge clk) begin
         if (valid) begin
             //out.LastColor <= input_data.LastColor;
             //out.BounceLevel <= input_data.BounceLevel;
-            //out.ViewDir <= input_data.RasterRay.Dir;    
+            //out.ViewDir <= input_data.SurfaceRay.Dir;    
             out.x <= input_data.x;
             out.y <= input_data.y;                                 
             out.bHit <= hit_data.bHit;                                                            
@@ -46,19 +46,19 @@ module TestCombineOutput (
             //out.Color <= hit_data.Color;
             out.Normal <= hit_data.Normal;
             //out.SurfaceType <= hit_data.SurfaceType;
-            out.ShadowingRay.Orig <= out.HitPos;
-            out.ShadowingRay.Dir <= light_dir;  
-            out.ShadowingRay.InvDir <= light_invdir;
-            out.ShadowingRay.MinT <= _Fixed(0);
-            out.ShadowingRay.MaxT <= _Fixed(-1);                                                      
-            out.ShadowingRay.PI <= hit_data.PI;            
+            out.ShadowRay.Orig <= out.HitPos;
+            out.ShadowRay.Dir <= light_dir;  
+            out.ShadowRay.InvDir <= light_invdir;
+            out.ShadowRay.MinT <= _Fixed(0);
+            out.ShadowRay.MaxT <= _Fixed(-1);                                                      
+            out.ShadowRay.PI <= hit_data.PI;            
         end        
     end
 endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module TestRasterUnit (      
+module TestSurfaceUnit (      
     input clk,
     input resetn,    
 
@@ -66,7 +66,7 @@ module TestRasterUnit (
     input add_input,
 
     // inputs...
-    input RasterInputData input_data,            
+    input SurfaceInputData input_data,            
     input RenderState rs,        
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],    
     input BVH_Node node,    
@@ -76,14 +76,14 @@ module TestRasterUnit (
     // outputs...  
     output logic fifo_full,        
     output logic valid,
-    output RasterOutputData out,           
+    output SurfaceOutputData out,           
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,        
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index    
     );       
     
-    RasterState State, NextState = RASTS_Init;         
-    RasterInputData Input, CurrentInput;
+    SurfaceState State, NextState = SURFS_Init;         
+    SurfaceInputData Input, CurrentInput;
     HitData PHitData, FinalHitData, HitData;	    
        
     PrimitiveGroupFIFO PrimitiveFIFO;	
@@ -149,13 +149,13 @@ module TestRasterUnit (
 
     initial begin	        
         fifo_full <= 0;
-        NextState <= RASTS_Init;
+        NextState <= SURFS_Init;
 	end	    
 
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
             fifo_full <= 0; 
-            NextState <= RASTS_Init;
+            NextState <= SURFS_Init;
         end
         else begin           
             // If ray FIFO is not full
@@ -169,7 +169,7 @@ module TestRasterUnit (
 
             State = NextState;
             case (State)
-                (RASTS_Init): begin    
+                (SURFS_Init): begin    
                     valid <= 0;
                     BU_Strobe <= 0;
                     BU_RestartStrobe <= 0;                    
@@ -185,11 +185,11 @@ module TestRasterUnit (
                         RealEndPrimitiveIndex = 0;           
                         BU_Strobe <= 1;                                                                    
                         QueueReflectiveBoxAndGround();    
-                        NextState <= RASTS_Rasterize;                                                   
+                        NextState <= SURFS_Surfacing;                                                   
                     end                    
                 end   
                 
-                (RASTS_Rasterize): begin        
+                (SURFS_Surfacing): begin        
                     BU_RestartStrobe <= 0;            
                     ResetFinalHitData <= 0;                                                            
                     BU_Strobe <= 0;        
@@ -208,23 +208,23 @@ module TestRasterUnit (
                             if (BU_Finished) begin                                  
                                 BU_RestartStrobe <= 1;    
                                 BU_Strobe <= 0;
-                                NextState <= RASTS_Done;
+                                NextState <= SURFS_Done;
                             end                            
                         end                    
                     end                                                                                
                 end                        
 
-                (RASTS_Done): begin
+                (SURFS_Done): begin
                     BU_RestartStrobe <= 1;
                     BU_Strobe <= 0;                        
                     if (!output_fifo_full) begin
                         valid <= 1;                                  
-                        NextState <= RASTS_Init;            
+                        NextState <= SURFS_Init;            
                     end                    
                 end
                 
                 default: begin
-                    NextState <= RASTS_Init;
+                    NextState <= SURFS_Init;
                 end            
             endcase                
         end        
@@ -236,7 +236,7 @@ module TestRasterUnit (
         .strobe(BU_Strobe),    
         .restart_strobe(BU_RestartStrobe),
         .offset(rs.PositionOffset),
-        .r(CurrentInput.RasterRay),
+        .r(CurrentInput.SurfaceRay),
         .node_index(node_index),
         .node(node),
         .leaf(leaf),
@@ -246,7 +246,7 @@ module TestRasterUnit (
     );
     
     RayUnitV3_FindClosestHit RU(
-    	.r(CurrentInput.RasterRay), 		
+    	.r(CurrentInput.SurfaceRay), 		
 		.p(p),
 		.hit_data(PHitData)		
 	);    
@@ -259,12 +259,12 @@ module TestRasterUnit (
         .final_hit_data(FinalHitData)     
     );
 
-    Fixed3_Mul A1(FinalHitData.T, CurrentInput.RasterRay.Dir, D);
-    Fixed3_Add A2(CurrentInput.RasterRay.Orig, D, out.HitPos);            
+    Fixed3_Mul A1(FinalHitData.T, CurrentInput.SurfaceRay.Dir, D);
+    Fixed3_Add A2(CurrentInput.SurfaceRay.Orig, D, out.HitPos);            
 
     TestCombineOutput CO (   
         .clk(clk),
-        .valid(NextState == RASTS_Done),
+        .valid(NextState == SURFS_Done),
         .light_dir(rs.Light[0].Dir),
         .light_invdir(rs.Light[0].InvDir),
         .input_data(CurrentInput),
@@ -274,7 +274,7 @@ module TestRasterUnit (
 
     Texture TX(
         .clk(clk),
-        .strobe(NextState == RASTS_Done),
+        .strobe(NextState == SURFS_Done),
         .color(FinalHitData.Color),
         .pos(out.HitPos),
         .hit(FinalHitData.bHit),
@@ -286,7 +286,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module TestRaster (    
+module TestSurface (    
     input clk,
     input resetn,    
 
@@ -295,8 +295,8 @@ module TestRaster (
     input add_ref_input,
 
     // inputs...
-    input RasterInputData input_data,                 
-    input RasterInputData ref_input_data,            
+    input SurfaceInputData input_data,                 
+    input SurfaceInputData ref_input_data,            
     input RenderState rs,        
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],        
     input BVH_Node node,    
@@ -307,16 +307,16 @@ module TestRaster (
     output logic fifo_full,        
     output logic ref_fifo_full,        
     output logic valid,
-    output RasterOutputData out,           
+    output SurfaceOutputData out,           
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index    
     );       
 
-    logic RGEN_Valid, RAS_FIFO_Full;
-    RasterInputData RGEN_Output;    
+    logic RGEN_Valid, SURF_FIFO_Full;
+    SurfaceInputData RGEN_Output;    
 
-    RastaerRayGeneratorV4 RGEN (
+    SurfaceRayGeneratorV4 RGEN (
         .clk(clk),
         .resetn(resetn),	
         .add_input(add_input),	    
@@ -325,12 +325,12 @@ module TestRaster (
         .add_ref_input(add_ref_input),	    
         .ref_input_data(ref_input_data),                                
         .ref_fifo_full(ref_fifo_full),        
-        .output_fifo_full(RAS_FIFO_Full),
+        .output_fifo_full(SURF_FIFO_Full),
         .valid(RGEN_Valid),
         .out(RGEN_Output)        
     );
 
-    TestRasterUnit RAS (    
+    TestSurfaceUnit SURF (    
         .clk(clk),
         .resetn(resetn),
         .add_input(RGEN_Valid),
@@ -339,7 +339,7 @@ module TestRaster (
         .output_fifo_full(output_fifo_full),
         .valid(valid),
         .out(out),
-        .fifo_full(RAS_FIFO_Full),
+        .fifo_full(SURF_FIFO_Full),
         .start_primitive(start_primitive),
         .end_primitive(end_primitive),
         .p(p),
@@ -352,7 +352,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module TestShadowingRayGenerator(
+module TestShadowRayGenerator(
     input clk,
 	input resetn,	
 
@@ -360,17 +360,17 @@ module TestShadowingRayGenerator(
     input add_input,	        
 
     // inputs...
-    input RasterOutputData input_data,
+    input SurfaceOutputData input_data,
     input output_fifo_full,	    
 
     // outputs...     
     output logic fifo_full,           
     output logic valid,
-    output RasterOutputData out    
+    output SurfaceOutputData out    
     );		
 	
     RayGeneratorState State, NextState = RGS_Init;    
-    RasterOutputData Input;                
+    SurfaceOutputData Input;                
     
     Fixed3 InvDir;    
 	logic InvDir_Valid, InvDir_Strobe;   
@@ -426,7 +426,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module TestShadowingUnit_Simple (
+module TestShadowUnit_Simple (
     input clk,
     input resetn,
 
@@ -434,7 +434,7 @@ module TestShadowingUnit_Simple (
     input add_input,
 
     // inputs...    
-    input RasterOutputData input_data,    
+    input SurfaceOutputData input_data,    
     input RenderState rs,    
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
@@ -442,14 +442,14 @@ module TestShadowingUnit_Simple (
     // outputs...      
     output logic fifo_full,
     output logic valid,
-    output ShadowingOutputData out,    
+    output ShadowOutputData out,    
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive    
     );
 
-    ShadowingState State, NextState = SHDWS_Init;     
+    ShadowState State, NextState = SHDWS_Init;     
 
-    RasterOutputData Input, CurrentInput;
+    SurfaceOutputData Input, CurrentInput;
 
     HitData PHitData, FinalHitData, HitData;	    
     
@@ -521,12 +521,12 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module TestShadowingCombineOutput (     
+module TestShadowCombineOutput (     
     input clk,
     input valid, 
-    input RasterOutputData input_data,
+    input SurfaceOutputData input_data,
     input HitData hit_data,
-    output ShadowingOutputData out
+    output ShadowOutputData out
     );
     always_ff @(posedge clk) begin
         if (valid) begin
@@ -548,7 +548,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module TestShadowingUnit (
+module TestShadowUnit (
     input clk,
     input resetn,
 
@@ -556,7 +556,7 @@ module TestShadowingUnit (
     input add_input,
 
     // inputs...    
-    input RasterOutputData input_data,    
+    input SurfaceOutputData input_data,    
     input RenderState rs,    
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
@@ -564,14 +564,14 @@ module TestShadowingUnit (
     // outputs...      
     output logic fifo_full,
     output logic valid,
-    output ShadowingOutputData out,    
+    output ShadowOutputData out,    
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive    
     );
 
-    ShadowingState State, NextState = SHDWS_Init;     
+    ShadowState State, NextState = SHDWS_Init;     
 
-    RasterOutputData Input, CurrentInput;
+    SurfaceOutputData Input, CurrentInput;
 
     HitData PHitData, FinalHitData;	    
     
@@ -673,7 +673,7 @@ module TestShadowingUnit (
                         if (CurrentInput.bHit) begin    
                             BU_Strobe <= 1;                                                                        
                             QueueReflectiveBoxAndGround();                                                            
-                            NextState <= SHDWS_Rasterize;          
+                            NextState <= SHDWS_AnyHit;          
                         end
                         else begin                           
                             NextState <= SHDWS_Done;
@@ -681,7 +681,7 @@ module TestShadowingUnit (
                     end                    
                 end   
                 
-                SHDWS_Rasterize: begin
+                SHDWS_AnyHit: begin
                     valid <= 0;                    
                     BU_Strobe <= 0;                    
 
@@ -730,19 +730,19 @@ module TestShadowingUnit (
         .strobe(BU_Strobe),    
         .restart_strobe(BU_RestartStrobe),
         .offset(rs.PositionOffset),
-        .r(CurrentInput.ShadowingRay),
+        .r(CurrentInput.ShadowRay),
         .start_prim(LeafStartPrim),    
         .num_prim(LeafNumPrim),            
         .finished(BU_Finished)        
     );
     
     RayUnitV3_FindAnyHit RU(            
-		.r(CurrentInput.ShadowingRay), 		
+		.r(CurrentInput.ShadowRay), 		
 		.p(p),
 		.out_hit(PHitData.bHit)		
 	);   
 
-    TestShadowingCombineOutput CO (     
+    TestShadowCombineOutput CO (     
         .clk(clk),
         .valid(NextState == SHDWS_Done), 
         .input_data(CurrentInput),
@@ -753,7 +753,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module TestShadowing (
+module TestShadow (
     input clk,
     input resetn,
 
@@ -761,7 +761,7 @@ module TestShadowing (
     input add_input,
 
     // inputs...
-    input RasterOutputData input_data,    
+    input SurfaceOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
@@ -769,16 +769,16 @@ module TestShadowing (
     // outputs...  
     output logic fifo_full,
     output logic valid,
-    output ShadowingOutputData out,
+    output ShadowOutputData out,
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive    
     );
 
     logic SRGEN_Valid, SHDW_FIFO_Full; 
-    RasterOutputData SRGEN_Output;    
+    SurfaceOutputData SRGEN_Output;    
 
-    TestShadowingUnit_Simple SHDW (
-    //TestShadowingUnit SHDW (
+    TestShadowUnit_Simple SHDW (
+    //TestShadowUnit SHDW (
         .clk(clk),
         .resetn(resetn),
         .add_input(add_input),
@@ -796,12 +796,12 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module TestShaderCombineOutput (    
+module TestShadeCombineOutput (    
     input clk,
     input valid,  
-    input ShadowingOutputData input_data,    
+    input ShadowOutputData input_data,    
     input FixedNorm3 l,          
-    output ShaderOutputData out
+    output ShadeOutputData out
     );
     FixedNorm Diffuse;            
 
@@ -843,7 +843,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module TestShader(   
+module TestShade(   
     input clk,
     input resetn,    
 
@@ -851,20 +851,20 @@ module TestShader(
     input add_input,
 
     // inputs...
-    input ShadowingOutputData input_data,    
+    input ShadowOutputData input_data,    
     input RenderState rs,          
     input logic output_fifo_full,
 
     // outputs...      
     output logic fifo_full,
     output logic valid,
-    output ShaderOutputData out,    
+    output ShadeOutputData out,    
     output logic ref_valid,
-    output RasterInputData ref_out   
+    output SurfaceInputData ref_out   
     );
 
-    ShaderState State, NextState = SS_Init;
-    ShadowingOutputData Input, CurrentInput;    
+    ShadeState State, NextState = SS_Init;
+    ShadowOutputData Input, CurrentInput;    
     
     initial begin	        
         fifo_full <= 0;
@@ -914,7 +914,7 @@ module TestShader(
         end        
     end   
 
-    TestShaderCombineOutput CO (
+    TestShadeCombineOutput CO (
         .clk(clk),
         .valid(NextState == SS_Done),
         .input_data(CurrentInput),
@@ -934,7 +934,7 @@ module TestRayCore(
     input logic add_input,
 
     // inputs...    
-    input RasterInputData input_data,        
+    input SurfaceInputData input_data,        
     input RenderState rs,
     input BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
     input BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE],
@@ -946,7 +946,7 @@ module TestRayCore(
     // outputs...  
     output logic fifo_full,        
     output logic valid,
-    output ShaderOutputData shader_out,
+    output ShadeOutputData shade_out,
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive_0,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive_0,	    
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive_1,
@@ -955,33 +955,33 @@ module TestRayCore(
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index_1
     );       
         
-    logic RAS_Valid, RAS_REF_FIFO_Full;
-    RasterOutputData RAS_Output;    
+    logic SURF_Valid, SURF_REF_FIFO_Full;
+    SurfaceOutputData SURF_Output;    
 
     logic SHDW_Valid, SHDW_FIFO_Full;   
-    ShadowingOutputData SHDW_Output;          
+    ShadowOutputData SHDW_Output;          
      
-    logic SHDR_Valid, SHDR_FIFO_Full;
+    logic SHAD_Valid, SHAD_FIFO_Full;
 
-    logic SHDR_REF_Valid;
-    RasterInputData SHDR_REF_Output;
+    logic SHAD_REF_Valid;
+    SurfaceInputData SHAD_REF_Output;
 	
 	
-    // 3 pipeline stages : RAS -> SHDW -> SHDR, the SHDR output will be redirected back to RAS for trflection
-    // For example : RAS -> SHDW -> SHDR -> RAS -> SHDW -> SHDR -> RAS -> SHDW -> SHDR -> Frame Buffer for 3 bounces
-    TestRaster RAS (    
+    // 3 pipeline stages : SURF -> SHDW -> SHAD, the SHAD output will be redirected back to SURF for trflection
+    // For example : SURF -> SHDW -> SHAD -> SURF -> SHDW -> SHAD -> SURF -> SHDW -> SHAD -> Frame Buffer for 3 bounces
+    TestSurface SURF (    
         .clk(clk),
         .resetn(resetn),
         .add_input(add_input),
         .input_data(input_data),        
         .fifo_full(fifo_full),
-        .add_ref_input(SHDR_REF_Valid),
-        .ref_input_data(SHDR_REF_Output),        
-        .ref_fifo_full(RAS_REF_FIFO_Full),
+        .add_ref_input(SHAD_REF_Valid),
+        .ref_input_data(SHAD_REF_Output),        
+        .ref_fifo_full(SURF_REF_FIFO_Full),
         .rs(rs),        
         .output_fifo_full(SHDW_FIFO_Full),
-        .valid(RAS_Valid),
-        .out(RAS_Output),        
+        .valid(SURF_Valid),
+        .out(SURF_Output),        
         .start_primitive(start_primitive_0),
         .end_primitive(end_primitive_0),
         .p(p0),
@@ -990,13 +990,13 @@ module TestRayCore(
         .leaf(leaf_0)
     );
 
-    TestShadowing SHDW (
+    TestShadow SHDW (
         .clk(clk),
         .resetn(resetn),
-        .add_input(RAS_Valid),
-        .input_data(RAS_Output),        
+        .add_input(SURF_Valid),
+        .input_data(SURF_Output),        
         .rs(rs),        
-        .output_fifo_full(SHDR_FIFO_Full),
+        .output_fifo_full(SHAD_FIFO_Full),
         .valid(SHDW_Valid),
         .out(SHDW_Output),
         .fifo_full(SHDW_FIFO_Full),
@@ -1005,17 +1005,17 @@ module TestRayCore(
         .p(p1)    
     );         
 
-    TestShader SHDR (
+    TestShade SHAD (
         .clk(clk),
         .resetn(resetn),
         .add_input(SHDW_Valid),
         .input_data(SHDW_Output),        
-        .fifo_full(SHDR_FIFO_Full),
+        .fifo_full(SHAD_FIFO_Full),
         .rs(rs),                
         .valid(valid),
-        .out(shader_out),        
-        .ref_valid(SHDR_REF_Valid),
-        .ref_out(SHDR_REF_Output),
-        .output_fifo_full(RAS_REF_FIFO_Full)        
+        .out(shade_out),        
+        .ref_valid(SHAD_REF_Valid),
+        .ref_out(SHAD_REF_Output),
+        .output_fifo_full(SURF_REF_FIFO_Full)        
     );            
 endmodule

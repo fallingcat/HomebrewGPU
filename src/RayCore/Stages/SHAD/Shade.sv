@@ -375,12 +375,12 @@ endmodule
 //-------------------------------------------------------------------
 // Prepare final output data for fragment
 //-------------------------------------------------------------------    
-module ShaderCombineOutput (      
+module ShadeCombineOutput (      
     input clk,
     input strobe,    
-    input ShadowingOutputData input_data,
+    input ShadowOutputData input_data,
     input RGB8 color,
-    output ShaderOutputData out
+    output ShadeOutputData out
     );
     always_ff @(posedge clk) begin
         if (strobe) begin
@@ -393,12 +393,12 @@ endmodule
 //-------------------------------------------------------------------
 // Prepare reflection/refraction output data 
 //-------------------------------------------------------------------    
-module ShaderCombineRefOutput (      
+module ShadeCombineRefOutput (      
     input clk,
     input strobe,    
-    input ShadowingOutputData input_data,
+    input ShadowOutputData input_data,
     input RGB8 color,
-    output RasterInputData out
+    output SurfaceInputData out
     );
     always_ff @(posedge clk) begin
         if (strobe) begin
@@ -406,20 +406,20 @@ module ShaderCombineRefOutput (
             out.y <= input_data.y;
             out.LastColor <= color;
             out.BounceLevel <= input_data.BounceLevel + 1;   
-            out.RasterRay.Orig <= input_data.HitPos;                        
-            out.RasterRay.PI <= input_data.PI;
+            out.SurfaceRay.Orig <= input_data.HitPos;                        
+            out.SurfaceRay.PI <= input_data.PI;
             
             case (input_data.SurfaceType)              
                 (ST_Metal): begin
-                    out.RasterRay.MinT <= _Fixed(0);
-                    out.RasterRay.MaxT <= _Fixed(1000);         
-                    //out.RasterRay.PI <= input_data.PI;
+                    out.SurfaceRay.MinT <= _Fixed(0);
+                    out.SurfaceRay.MaxT <= _Fixed(1000);         
+                    //out.SurfaceRay.PI <= input_data.PI;
                 end
 
                 (ST_Dielectric): begin
-                    out.RasterRay.MinT <= _Fixeds(2457); // 0.15f
-                    out.RasterRay.MaxT <= _Fixed(1000);                                                                      
-                    //out.RasterRay.PI <= `NULL_PRIMITIVE_INDEX;
+                    out.SurfaceRay.MinT <= _Fixeds(2457); // 0.15f
+                    out.SurfaceRay.MaxT <= _Fixed(1000);                                                                      
+                    //out.SurfaceRay.PI <= `NULL_PRIMITIVE_INDEX;
                 end
             endcase         
         end
@@ -468,19 +468,19 @@ endmodule
 // Output final color of fragment or reflection/refraction data for
 // recursive bounce.
 //-------------------------------------------------------------------    
-module _ShaderOutput (      
+module _ShadeOutput (      
     input clk,
 
-    input ShaderState state,    
-    input ShadowingOutputData input_data,
+    input ShadeState state,    
+    input ShadowOutputData input_data,
     input RGB8 color,
 
-    output ShaderOutputData out,
-    output RasterInputData ref_out
+    output ShadeOutputData out,
+    output SurfaceInputData ref_out
     );
 
     // Prepare output data for fragment 
-    ShaderCombineOutput CO(      
+    ShadeCombineOutput CO(      
         .clk(clk),
         .strobe(state == SS_Done),
         .input_data(input_data),
@@ -489,7 +489,7 @@ module _ShaderOutput (
     );
 
     // Prepare output data for recursive bounce
-    ShaderCombineRefOutput CRO(      
+    ShadeCombineRefOutput CRO(      
         .clk(clk),
         .strobe(state == SS_RefDone || state == SS_RefractDone),
         .input_data(input_data),
@@ -498,10 +498,10 @@ module _ShaderOutput (
     );
 endmodule
 //-------------------------------------------------------------------
-// Shader stage compute the final output data of fragment or the
+// Shade stage compute the final output data of fragment or the
 // relection/refraction data for recursive bounce.
 //-------------------------------------------------------------------    
-module Shader(   
+module Shade(   
     input clk,
     input resetn,    
 
@@ -509,7 +509,7 @@ module Shader(
     input add_input,
 
     // inputs...
-    input ShadowingOutputData input_data,    
+    input ShadowOutputData input_data,    
     input RenderState rs,          
     input logic output_fifo_full,
 
@@ -519,17 +519,17 @@ module Shader(
     // If the output is ready?
     output logic valid,
     // Output data for fragment 
-    output ShaderOutputData out,
+    output ShadeOutputData out,
     // If the reflection/refraction output is ready?    
     output logic ref_valid,
     // Output data for reflection/refraction
-    output RasterInputData ref_out   
+    output SurfaceInputData ref_out   
     );
 
     FixedNorm Diffuse;           
     Fixed Eta; 
-    ShaderState State, NextState = SS_Init;
-    ShadowingOutputData Input, CurrentInput;
+    ShadeState State, NextState = SS_Init;
+    ShadowOutputData Input, CurrentInput;
 
     logic Refraction_Strobe, Refraction_Valid;
     logic ColorDiv_Strobe, ColorDiv_Valid;
@@ -627,7 +627,7 @@ module Shader(
             `ifdef IMPLEMENT_REFLECTION
                 (SS_RefDone): begin
                     if (!output_fifo_full) begin
-                        ref_out.RasterRay.Dir <= ReflectionDir;
+                        ref_out.SurfaceRay.Dir <= ReflectionDir;
                         valid <= 0;
                         ref_valid <= 1;                        
                         NextState <= SS_Init;            
@@ -647,7 +647,7 @@ module Shader(
 
                 (SS_RefractDone): begin                    
                     if (!output_fifo_full) begin                        
-                        ref_out.RasterRay.Dir <= RefractionDir;
+                        ref_out.SurfaceRay.Dir <= RefractionDir;
                         valid <= 0;
                         ref_valid <= 1;                        
                         NextState <= SS_Init;            
@@ -731,7 +731,7 @@ module Shader(
     );    
 
     // Prepare output data for fragment 
-    _ShaderOutput SHDER_OUTPUT(
+    _ShadeOutput SHDER_OUTPUT(
         .clk(clk),
         .state(NextState),    
         .input_data(CurrentInput),

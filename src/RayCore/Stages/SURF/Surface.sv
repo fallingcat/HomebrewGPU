@@ -84,31 +84,31 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module RasterCombineOutput (      
+module SurfaceCombineOutput (      
     input clk,
     input strobe,  
     input Fixed3 light_dir,  
     input Fixed3 light_invdir,
-    input RasterInputData input_data,
+    input SurfaceInputData input_data,
     input HitData hit_data,
-    output RasterOutputData out
+    output SurfaceOutputData out
     );
     always_ff @(posedge clk) begin
         if (strobe) begin
             out.LastColor <= input_data.LastColor;
             out.BounceLevel <= input_data.BounceLevel;
-            out.ViewDir <= input_data.RasterRay.Dir;    
+            out.ViewDir <= input_data.SurfaceRay.Dir;    
             out.x <= input_data.x;
             out.y <= input_data.y;                                             
             out.PI <= hit_data.PI;
             out.Normal <= hit_data.Normal;
             out.SurfaceType <= hit_data.SurfaceType;
-            out.ShadowingRay.Orig <= out.HitPos;
-            out.ShadowingRay.Dir <= light_dir;                                
-            out.ShadowingRay.InvDir <= light_invdir;                                
-            out.ShadowingRay.MinT <= _Fixed(0);
-            out.ShadowingRay.MaxT <= _Fixed(-1);                                                      
-            out.ShadowingRay.PI <= hit_data.PI;            
+            out.ShadowRay.Orig <= out.HitPos;
+            out.ShadowRay.Dir <= light_dir;                                
+            out.ShadowRay.InvDir <= light_invdir;                                
+            out.ShadowRay.MinT <= _Fixed(0);
+            out.ShadowRay.MaxT <= _Fixed(-1);                                                      
+            out.ShadowRay.PI <= hit_data.PI;            
         end        
     end
 endmodule
@@ -117,7 +117,7 @@ endmodule
 // Then use Ray unit to find the closest hit.
 // Finally get the hiy position, normal, color, material, etc. data.
 //-------------------------------------------------------------------    
-module RasterUnit (      
+module SurfaceUnit (      
     input clk,
     input resetn,    
 
@@ -125,7 +125,7 @@ module RasterUnit (
     input add_input,
 
     // inputs...
-    input RasterInputData input_data,            
+    input SurfaceInputData input_data,            
     input RenderState rs,    
     input output_fifo_full,	    
 
@@ -136,14 +136,14 @@ module RasterUnit (
     // outputs...  
     output logic fifo_full,        
     output logic valid,
-    output RasterOutputData out,           
+    output SurfaceOutputData out,           
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index    
     );       
     
-    RasterState State, NextState = RASTS_Init;         
-    RasterInputData Input, CurrentInput;
+    SurfaceState State, NextState = SURFS_Init;         
+    SurfaceInputData Input, CurrentInput;
     HitData HitData, ClosestHitData;	         
     
     // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
@@ -213,14 +213,14 @@ module RasterUnit (
     /*
     initial begin	        
         fifo_full <= 0;
-        NextState <= RASTS_Init;
+        NextState <= SURFS_Init;
 	end	    
     */
 
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
             fifo_full <= 0; 
-            NextState <= RASTS_Init;
+            NextState <= SURFS_Init;
         end
         else begin           
             // If ray FIFO is not full
@@ -234,7 +234,7 @@ module RasterUnit (
 
             State = NextState;
             case (State)
-                (RASTS_Init): begin    
+                (SURFS_Init): begin    
                     valid <= 0;
                     BU_Strobe <= 0;
                     BU_RestartStrobe <= 0;                    
@@ -254,11 +254,11 @@ module RasterUnit (
 
                         BU_Strobe <= 1;                                                                    
                         QueueGlobalPrimitives();    
-                        NextState <= RASTS_Rasterize;                                                   
+                        NextState <= SURFS_Surfacing;                                                   
                     end                    
                 end   
                 
-                (RASTS_Rasterize): begin                    
+                (SURFS_Surfacing): begin                    
                     ResetClosestHitData <= 0;
                     valid <= 0;                    
                     BU_Strobe <= 0;       
@@ -278,13 +278,13 @@ module RasterUnit (
                         else begin
                             if (BU_Finished) begin          
                                 // All possible hit primitives are processed.
-                                NextState <= RASTS_Done;
+                                NextState <= SURFS_Done;
                             end                            
                         end                    
                     end                                                                                
                 end                        
 
-                (RASTS_Done): begin
+                (SURFS_Done): begin
                     StartPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;
                     EndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
                     RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;         
@@ -293,12 +293,12 @@ module RasterUnit (
                         valid <= 1;          
                         BU_Strobe <= 0;
                         BU_RestartStrobe <= 1;    
-                        NextState <= RASTS_Init;            
+                        NextState <= SURFS_Init;            
                     end                    
                 end
                 
                 default: begin
-                    NextState <= RASTS_Init;
+                    NextState <= SURFS_Init;
                 end            
             endcase                
         end        
@@ -311,7 +311,7 @@ module RasterUnit (
         .strobe(BU_Strobe),    
         .restart_strobe(BU_RestartStrobe),
         .offset(rs.PositionOffset),
-        .r(CurrentInput.RasterRay),
+        .r(CurrentInput.SurfaceRay),
 
         .start_prim(LeafStartPrim),    
         .num_prim(LeafNumPrim), 
@@ -325,7 +325,7 @@ module RasterUnit (
     
     // Find the closest hit point from all possible primitives
     RayUnit_FindClosestHit RU(
-		.r(CurrentInput.RasterRay), 		
+		.r(CurrentInput.SurfaceRay), 		
 		.p(p),
 		.hit_data(HitData)		
 	);    
@@ -339,13 +339,13 @@ module RasterUnit (
         .closest_hit_data(ClosestHitData)     
     );        
     
-    Fixed3_Mul A1(ClosestHitData.T, CurrentInput.RasterRay.Dir, D);
-    Fixed3_Add A2(CurrentInput.RasterRay.Orig, D, out.HitPos);            
+    Fixed3_Mul A1(ClosestHitData.T, CurrentInput.SurfaceRay.Dir, D);
+    Fixed3_Add A2(CurrentInput.SurfaceRay.Orig, D, out.HitPos);            
 
     // Prepare the output data for next stage
-    RasterCombineOutput CO (      
+    SurfaceCombineOutput CO (      
         .clk(clk),
-        .strobe(NextState == RASTS_Done),
+        .strobe(NextState == SURFS_Done),
         .light_dir(rs.Light[0].Dir),
         .light_invdir(rs.Light[0].InvDir),
         .input_data(CurrentInput),
@@ -356,7 +356,7 @@ module RasterUnit (
     // Texturing for this fragment if it is a fragment from ground primitive
     _Texturing TX(
         .clk(clk),
-        .strobe(NextState == RASTS_Done),
+        .strobe(NextState == SURFS_Done),
         .color(ClosestHitData.Color),
         .pos(out.HitPos),
         .hit(ClosestHitData.SurfaceType != ST_None),
@@ -368,7 +368,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module Raster (    
+module Surface (    
     input clk,
     input resetn,    
 
@@ -377,8 +377,8 @@ module Raster (
     input add_ref_input,
 
     // inputs...
-    input RasterInputData input_data,                 
-    input RasterInputData ref_input_data,            
+    input SurfaceInputData input_data,                 
+    input SurfaceInputData ref_input_data,            
     input RenderState rs,    
     input output_fifo_full,	    
 
@@ -390,16 +390,16 @@ module Raster (
     output logic fifo_full,        
     output logic ref_fifo_full,        
     output logic valid,
-    output RasterOutputData out,           
+    output SurfaceOutputData out,           
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index        
     );       
 
-    logic RGEN_Valid, RAS_FIFO_Full;
-    RasterInputData RGEN_Output;    
+    logic RGEN_Valid, SURF_FIFO_Full;
+    SurfaceInputData RGEN_Output;    
 
-    RastaerRayGenerator RGEN(
+    SurfaceRayGenerator RGEN(
         .clk(clk),
         .resetn(resetn),	
         .add_input(add_input),	    
@@ -408,12 +408,12 @@ module Raster (
         .add_ref_input(add_ref_input),	    
         .ref_input_data(ref_input_data),                                
         .ref_fifo_full(ref_fifo_full),        
-        .output_fifo_full(RAS_FIFO_Full),
+        .output_fifo_full(SURF_FIFO_Full),
         .valid(RGEN_Valid),
         .out(RGEN_Output)        
     );
 
-    RasterUnit RAS(
+    SurfaceUnit SURF(
         .clk(clk),
         .resetn(resetn),
         .add_input(RGEN_Valid),
@@ -422,7 +422,7 @@ module Raster (
         .output_fifo_full(output_fifo_full),
         .valid(valid),
         .out(out),
-        .fifo_full(RAS_FIFO_Full),
+        .fifo_full(SURF_FIFO_Full),
         
         .start_primitive(start_primitive),
         .end_primitive(end_primitive),

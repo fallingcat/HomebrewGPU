@@ -26,7 +26,7 @@
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module ShadowingRayGenerator(
+module ShadowRayGenerator(
     input clk,
 	input resetn,	
 
@@ -34,17 +34,17 @@ module ShadowingRayGenerator(
     input add_input,	        
 
     // inputs...
-    input RasterOutputData input_data,
+    input SurfaceOutputData input_data,
     input output_fifo_full,	    
 
     // outputs...     
     output logic fifo_full,           
     output logic valid,
-    output RasterOutputData out    
+    output SurfaceOutputData out    
     );		
 	
     RayGeneratorState State, NextState = RGS_Init;    
-    RasterOutputData Input;                
+    SurfaceOutputData Input;                
     
     Fixed3 InvDir;    
 	logic InvDir_Valid, InvDir_Strobe;   
@@ -98,7 +98,7 @@ module ShadowingRayGenerator(
 				(RGS_Generate): begin                    
                     InvDir_Strobe <= 0;
                     if (InvDir_Valid) begin                          
-                        out.ShadowingRay.InvDir <= InvDir;                                                
+                        out.ShadowRay.InvDir <= InvDir;                                                
                         NextState <= RGS_Done;
                     end                                            
                 end
@@ -118,7 +118,7 @@ module ShadowingRayGenerator(
 		.clk(clk),
         .resetn(resetn),
 		.strobe(InvDir_Strobe),
-		.v(out.ShadowingRay.Dir), 
+		.v(out.ShadowRay.Dir), 
 		.valid(InvDir_Valid),
 		.ov(InvDir)
 	);

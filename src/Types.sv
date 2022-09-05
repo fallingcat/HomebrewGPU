@@ -358,7 +358,7 @@ typedef struct {
     logic `SCREEN_COORD ViewportWidth, ViewportHeight;
 	RGB8 ClearColor;
     logic Lighting;
-    logic Shadowing;
+    logic Shadow;
     Light Light[1];
     logic `BOUNCE_LEVEL MaxBounceLevel;
     Fixed3 PositionOffset;
@@ -381,8 +381,8 @@ typedef struct {
 
 typedef enum logic [1:0] {
     Null_Ray                = 2'd0, 
-    Raster_Ray              = 2'd1, 
-    Shadowing_Ray           = 2'd2     
+    Surface_Ray             = 2'd1, 
+    Shadow_Ray              = 2'd2     
 } RayType;
 
 typedef struct {
@@ -491,20 +491,20 @@ typedef struct {
     RGB8 LastColor;
     logic `BOUNCE_LEVEL BounceLevel;
     logic `SCREEN_COORD x, y;
-    Ray RasterRay;        
-} RasterInputData;
+    Ray SurfaceRay;        
+} SurfaceInputData;
 
 typedef struct { 
     logic DataValid;       
-    RasterInputData RayCoreInput;
+    SurfaceInputData RayCoreInput;
 } ThreadData;
 
-// Raster -----------------------------------------------------
+// Surface Stage -----------------------------------------------------
 typedef enum logic [3:0] {
-    RASTS_Init              = 4'd0,    
-    RASTS_Rasterize         = 4'd1,     
-    RASTS_Done              = 4'd2
-} RasterState;
+    SURFS_Init              = 4'd0,    
+    SURFS_Surfacing         = 4'd1,     
+    SURFS_Done              = 4'd2
+} SurfaceState;
 
 typedef struct { 
     RGB8 LastColor;
@@ -516,16 +516,16 @@ typedef struct {
     RGB8 Color;
     FixedNorm3 Normal;    
     SurfaceType SurfaceType;
-    Ray ShadowingRay;
-} RasterOutputData;
+    Ray ShadowRay;
+} SurfaceOutputData;
 
-// Shdowing -----------------------------------------------------
+// Shdow Stage -----------------------------------------------------
 typedef enum logic [3:0] {
     SHDWS_Init              = 4'd0,    
-    SHDWS_Rasterize         = 4'd1, 
+    SHDWS_AnyHit            = 4'd1, 
     SHDWS_GenOutput         = 4'd2,
     SHDWS_Done              = 4'd3
-} ShadowingState;
+} ShadowState;
 
 typedef struct {         
     RGB8 LastColor;
@@ -538,9 +538,9 @@ typedef struct {
     FixedNorm3 Normal;        
     SurfaceType SurfaceType;
     logic bShadow;
-} ShadowingOutputData;
+} ShadowOutputData;
 
-// Shader -----------------------------------------------------
+// Shade Stage-----------------------------------------------------
 typedef enum logic [3:0] {
     SS_Init                 = 4'd0,
     SS_Combine              = 4'd1, 
@@ -549,11 +549,11 @@ typedef enum logic [3:0] {
     SS_RefDone              = 4'd4,
     SS_RefractDone          = 4'd5,
     SS_Done                 = 4'd6
-} ShaderState;
+} ShadeState;
 
 typedef struct {    
     logic `SCREEN_COORD x, y;
     RGB8 Color;    
-} ShaderOutputData;
+} ShadeOutputData;
 
 `endif

@@ -30,9 +30,9 @@ module SimpleCombineOutput (
     input valid,
     input Fixed3 light_dir, 
     input Fixed3 light_invdir,             
-    input RasterInputData input_data,
+    input SurfaceInputData input_data,
     input HitData hit_data,    
-    output RasterOutputData out
+    output SurfaceOutputData out
     );
     always_ff @(posedge clk) begin
         if (valid) begin
@@ -46,7 +46,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SimpleRasterUnit (      
+module SimpleSurfaceUnit (      
     input clk,
     input resetn,    
 
@@ -54,7 +54,7 @@ module SimpleRasterUnit (
     input add_input,
 
     // inputs...
-    input RasterInputData input_data,            
+    input SurfaceInputData input_data,            
     input RenderState rs,    
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
@@ -62,13 +62,13 @@ module SimpleRasterUnit (
     // outputs...  
     output logic fifo_full,        
     output logic valid,
-    output RasterOutputData out,           
+    output SurfaceOutputData out,           
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive    
     );       
     
-    RasterState State, NextState = RASTS_Init;         
-    RasterInputData Input, CurrentInput;
+    SurfaceState State, NextState = SURFS_Init;         
+    SurfaceInputData Input, CurrentInput;
     HitData PHitData, FinalHitData, HitData;	    
        
     PrimitiveGroupFIFO PrimitiveFIFO;	
@@ -116,13 +116,13 @@ module SimpleRasterUnit (
 
     initial begin	        
         fifo_full <= 0;
-        NextState <= RASTS_Init;
+        NextState <= SURFS_Init;
 	end	    
 
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
             fifo_full <= 0; 
-            NextState <= RASTS_Init;
+            NextState <= SURFS_Init;
         end
         else begin           
             // If ray FIFO is not full
@@ -136,7 +136,7 @@ module SimpleRasterUnit (
 
             State = NextState;
             case (State)
-                (RASTS_Init): begin    
+                (SURFS_Init): begin    
                     valid <= 0;
                     if (fifo_full) begin                        
                         CurrentInput = Input;                  
@@ -149,11 +149,11 @@ module SimpleRasterUnit (
                         EndPrimitiveIndex = 0;             
                         RealEndPrimitiveIndex = 0;                                   
                         QueueReflectiveBoxAndGround();    
-                        NextState <= RASTS_Rasterize;                                                   
+                        NextState <= SURFS_Surfacing;                                                   
                     end                    
                 end   
                 
-                (RASTS_Rasterize): begin        
+                (SURFS_Surfacing): begin        
                     ResetFinalHitData <= 0;                                                                                
                     valid <= 0;                                                    
                     
@@ -165,27 +165,27 @@ module SimpleRasterUnit (
                             DequeuePrimitiveGroup();                                                    
                         end
                         else begin
-                            NextState <= RASTS_Done;                            
+                            NextState <= SURFS_Done;                            
                         end                    
                     end                                                                                
                 end                        
 
-                (RASTS_Done): begin
+                (SURFS_Done): begin
                     if (!output_fifo_full) begin
                         valid <= 1;                                  
-                        NextState <= RASTS_Init;            
+                        NextState <= SURFS_Init;            
                     end                    
                 end
                 
                 default: begin
-                    NextState <= RASTS_Init;
+                    NextState <= SURFS_Init;
                 end            
             endcase                
         end        
     end         
     
     RayUnitV3_FindClosestHit RU(
-    	.r(CurrentInput.RasterRay), 		
+    	.r(CurrentInput.SurfaceRay), 		
 		.p(p),
 		.hit_data(PHitData)		
 	);    
@@ -200,7 +200,7 @@ module SimpleRasterUnit (
 
     SimpleCombineOutput CO (   
         .clk(clk),
-        .valid(NextState == RASTS_Done),
+        .valid(NextState == SURFS_Done),
         .light_dir(rs.Light[0].Dir),
         .light_invdir(rs.Light[0].InvDir),
         .input_data(CurrentInput),
@@ -208,12 +208,12 @@ module SimpleRasterUnit (
         .out(out)
     );  
 
-    Fixed3_Mul A1(FinalHitData.T, CurrentInput.RasterRay.Dir, D);
-    Fixed3_Add A2(CurrentInput.RasterRay.Orig, D, out.HitPos);            
+    Fixed3_Mul A1(FinalHitData.T, CurrentInput.SurfaceRay.Dir, D);
+    Fixed3_Add A2(CurrentInput.SurfaceRay.Orig, D, out.HitPos);            
     
     Texture TX(
         .clk(clk),
-        .strobe(NextState == RASTS_Done),
+        .strobe(NextState == SURFS_Done),
         .color(FinalHitData.Color),
         .pos(out.HitPos),
         .hit(FinalHitData.bHit),
@@ -224,7 +224,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SimpleRaster (    
+module SimpleSurface (    
     input clk,
     input resetn,    
 
@@ -233,8 +233,8 @@ module SimpleRaster (
     input add_ref_input,
 
     // inputs...
-    input RasterInputData input_data,                 
-    input RasterInputData ref_input_data,            
+    input SurfaceInputData input_data,                 
+    input SurfaceInputData ref_input_data,            
     input RenderState rs,    
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
@@ -243,15 +243,15 @@ module SimpleRaster (
     output logic fifo_full,        
     output logic ref_fifo_full,        
     output logic valid,
-    output RasterOutputData out,           
+    output SurfaceOutputData out,           
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive    
     );       
 
-    logic RGEN_Valid, RAS_FIFO_Full;
-    RasterInputData RGEN_Output;    
+    logic RGEN_Valid, SURF_FIFO_Full;
+    SurfaceInputData RGEN_Output;    
 
-    RastaerRayGeneratorV4 RGEN (
+    SurfaceRayGeneratorV4 RGEN (
         .clk(clk),
         .resetn(resetn),	
         .add_input(add_input),	    
@@ -260,12 +260,12 @@ module SimpleRaster (
         .add_ref_input(add_ref_input),	    
         .ref_input_data(ref_input_data),                                
         .ref_fifo_full(ref_fifo_full),        
-        .output_fifo_full(RAS_FIFO_Full),
+        .output_fifo_full(SURF_FIFO_Full),
         .valid(RGEN_Valid),
         .out(RGEN_Output)        
     );
 
-    SimpleRasterUnit RAS (    
+    SimpleSurfaceUnit SURF (    
         .clk(clk),
         .resetn(resetn),
         .add_input(RGEN_Valid),
@@ -274,7 +274,7 @@ module SimpleRaster (
         .output_fifo_full(output_fifo_full),
         .valid(valid),
         .out(out),
-        .fifo_full(RAS_FIFO_Full),
+        .fifo_full(SURF_FIFO_Full),
         .start_primitive(start_primitive),
         .end_primitive(end_primitive),
         .p(p)
@@ -284,12 +284,12 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SimpleShadowingCombineOutput (     
+module SimpleShadowCombineOutput (     
     input clk,
     input valid, 
-    input RasterOutputData input_data,
+    input SurfaceOutputData input_data,
     input HitData hit_data,
-    output ShadowingOutputData out
+    output ShadowOutputData out
     );
     always_ff @(posedge clk) begin
         if (valid) begin
@@ -311,7 +311,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SimpleShadowingUnit (
+module SimpleShadowUnit (
     input clk,
     input resetn,
 
@@ -319,7 +319,7 @@ module SimpleShadowingUnit (
     input add_input,
 
     // inputs...    
-    input RasterOutputData input_data,    
+    input SurfaceOutputData input_data,    
     input RenderState rs,    
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
@@ -327,13 +327,13 @@ module SimpleShadowingUnit (
     // outputs...      
     output logic fifo_full,
     output logic valid,
-    output ShadowingOutputData out,    
+    output ShadowOutputData out,    
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive    
     );
 
-    ShadowingState State, NextState = SHDWS_Init;     
-    RasterOutputData Input, CurrentInput;
+    ShadowState State, NextState = SHDWS_Init;     
+    SurfaceOutputData Input, CurrentInput;
     HitData PHitData, FinalHitData;	        
         
     initial begin	        
@@ -381,7 +381,7 @@ module SimpleShadowingUnit (
         end        
     end            
     
-    SimpleShadowingCombineOutput CO (     
+    SimpleShadowCombineOutput CO (     
         .clk(clk),
         .valid(NextState == SHDWS_Done), 
         .input_data(CurrentInput),
@@ -392,7 +392,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SimpleShadowing (
+module SimpleShadow (
     input clk,
     input resetn,
 
@@ -400,7 +400,7 @@ module SimpleShadowing (
     input add_input,
 
     // inputs...
-    input RasterOutputData input_data,    
+    input SurfaceOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
@@ -408,15 +408,15 @@ module SimpleShadowing (
     // outputs...  
     output logic fifo_full,
     output logic valid,
-    output ShadowingOutputData out,
+    output ShadowOutputData out,
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive    
     );
 
     logic SRGEN_Valid, SHDW_FIFO_Full; 
-    RasterOutputData SRGEN_Output;    
+    SurfaceOutputData SRGEN_Output;    
 
-    SimpleShadowingUnit SHDW (
+    SimpleShadowUnit SHDW (
         .clk(clk),
         .resetn(resetn),
         .add_input(add_input),
@@ -434,12 +434,12 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SimpleShaderCombineOutput (    
+module SimpleShadeCombineOutput (    
     input clk,
     input valid,  
-    input ShadowingOutputData input_data,    
+    input ShadowOutputData input_data,    
     input FixedNorm3 l,          
-    output ShaderOutputData out
+    output ShadeOutputData out
     );
     FixedNorm Diffuse;            
 
@@ -465,7 +465,7 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SimpleShader(   
+module SimpleShade(   
     input clk,
     input resetn,    
 
@@ -473,20 +473,20 @@ module SimpleShader(
     input add_input,
 
     // inputs...
-    input ShadowingOutputData input_data,    
+    input ShadowOutputData input_data,    
     input RenderState rs,          
     input logic output_fifo_full,
 
     // outputs...      
     output logic fifo_full,
     output logic valid,
-    output ShaderOutputData out,    
+    output ShadeOutputData out,    
     output logic ref_valid,
-    output RasterInputData ref_out   
+    output SurfaceInputData ref_out   
     );
 
-    ShaderState State, NextState = SS_Init;
-    ShadowingOutputData Input, CurrentInput;    
+    ShadeState State, NextState = SS_Init;
+    ShadowOutputData Input, CurrentInput;    
     
     initial begin	        
         fifo_full <= 0;
@@ -536,7 +536,7 @@ module SimpleShader(
         end        
     end   
 
-    SimpleShaderCombineOutput CO (
+    SimpleShadeCombineOutput CO (
         .clk(clk),
         .valid(NextState == SS_Done),
         .input_data(CurrentInput),
@@ -556,7 +556,7 @@ module SimpleRayCore(
     input logic add_input,
 
     // inputs...    
-    input RasterInputData input_data,        
+    input SurfaceInputData input_data,        
     input RenderState rs,
     input BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
     input BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE],
@@ -564,52 +564,52 @@ module SimpleRayCore(
     // outputs...  
     output logic fifo_full,        
     output logic valid,
-    output ShaderOutputData shader_out,
+    output ShadeOutputData shade_out,
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive_0,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive_0,	    
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive_1,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive_1		
     );       
         
-    logic RAS_Valid, RAS_REF_FIFO_Full;
-    RasterOutputData RAS_Output;    
+    logic SURF_Valid, SURF_REF_FIFO_Full;
+    SurfaceOutputData SURF_Output;    
 
     logic SHDW_Valid, SHDW_FIFO_Full;   
-    ShadowingOutputData SHDW_Output;          
+    ShadowOutputData SHDW_Output;          
      
-    logic SHDR_Valid, SHDR_FIFO_Full;
+    logic SHAD_Valid, SHAD_FIFO_Full;
 
-    logic SHDR_REF_Valid;
-    RasterInputData SHDR_REF_Output;
+    logic SHAD_REF_Valid;
+    SurfaceInputData SHAD_REF_Output;
 	
 	
-    // 3 pipeline stages : RAS -> SHDW -> SHDR, the SHDR output will be redirected back to RAS for trflection
-    // For example : RAS -> SHDW -> SHDR -> RAS -> SHDW -> SHDR -> RAS -> SHDW -> SHDR -> Frame Buffer for 3 bounces
-    SimpleRaster RAS (    
+    // 3 pipeline stages : SURF -> SHDW -> SHAD, the SHAD output will be redirected back to SURF for trflection
+    // For example : SURF -> SHDW -> SHAD -> SURF -> SHDW -> SHAD -> SURF -> SHDW -> SHAD -> Frame Buffer for 3 bounces
+    SimpleSurface SURF (    
         .clk(clk),
         .resetn(resetn),
         .add_input(add_input),
         .input_data(input_data),        
         .fifo_full(fifo_full),
-        .add_ref_input(SHDR_REF_Valid),
-        .ref_input_data(SHDR_REF_Output),        
-        .ref_fifo_full(RAS_REF_FIFO_Full),
+        .add_ref_input(SHAD_REF_Valid),
+        .ref_input_data(SHAD_REF_Output),        
+        .ref_fifo_full(SURF_REF_FIFO_Full),
         .rs(rs),        
         .output_fifo_full(SHDW_FIFO_Full),
-        .valid(RAS_Valid),
-        .out(RAS_Output),        
+        .valid(SURF_Valid),
+        .out(SURF_Output),        
         .start_primitive(start_primitive_0),
         .end_primitive(end_primitive_0),
         .p(p0)
     );
 
-    SimpleShadowing SHDW (
+    SimpleShadow SHDW (
         .clk(clk),
         .resetn(resetn),
-        .add_input(RAS_Valid),
-        .input_data(RAS_Output),        
+        .add_input(SURF_Valid),
+        .input_data(SURF_Output),        
         .rs(rs),        
-        .output_fifo_full(SHDR_FIFO_Full),
+        .output_fifo_full(SHAD_FIFO_Full),
         .valid(SHDW_Valid),
         .out(SHDW_Output),
         .fifo_full(SHDW_FIFO_Full),
@@ -618,17 +618,17 @@ module SimpleRayCore(
         .p(p1)    
     );         
 
-    SimpleShader SHDR (
+    SimpleShade SHAD (
         .clk(clk),
         .resetn(resetn),
         .add_input(SHDW_Valid),
         .input_data(SHDW_Output),        
-        .fifo_full(SHDR_FIFO_Full),
+        .fifo_full(SHAD_FIFO_Full),
         .rs(rs),                
         .valid(valid),
-        .out(shader_out),        
-        .ref_valid(SHDR_REF_Valid),
-        .ref_out(SHDR_REF_Output),
-        .output_fifo_full(RAS_REF_FIFO_Full)        
+        .out(shade_out),        
+        .ref_valid(SHAD_REF_Valid),
+        .ref_out(SHAD_REF_Output),
+        .output_fifo_full(SURF_REF_FIFO_Full)        
     );            
 endmodule
