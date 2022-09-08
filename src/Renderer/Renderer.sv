@@ -82,7 +82,8 @@ module Renderer(
 	Fixed3 CameraPos, CameraLook;
 	Fixed CameraFocus;		
 	Fixed Radius, OffsetPosX, OffsetPosZ;
-	logic [15:0] FragmentCount;
+	logic [31:0] CorePixelCounter[`RAY_CORE_SIZE];
+	logic [31:0] PixelCounter;
 	
 	//logic [8:0] CameraDegree = 0;
 	
@@ -221,13 +222,14 @@ module Renderer(
 					//x = 160;
                     //y = 120; 		
 
-					//x = 319;
-                    //y = 239; 					
+					//x <= 317;
+                    //y <= 239; 					
 					
 					TG_Strobe <= 0;
 					TG_Reset <= 1;	
 					RS_Strobe <= 1;
-					FragmentCount <= 0;
+					PixelCounter <= 0;
+					FrameFinished <= 0;
 					NextState <= RS_RenderStateSetup;											
 				end
 
@@ -245,28 +247,16 @@ module Renderer(
 				(RS_Render): begin					                   
 					TG_Strobe <= 1;
 					TG_Reset <= 0;	
-					RS_Strobe <= 0;
-					/*
-					// TODO : Find out why this way doesn't work. 
-					for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin                                						
-						if (RC_Valid[i]) begin						
-							FragmentCount = FragmentCount + 1;
-							if (FragmentCount >= (`FRAMEBUFFER_WIDTH * `FRAMEBUFFER_HEIGHT)) begin								
-								FrameCounter = FrameCounter + 1;
-								FrameKCycles = FrameKCycleCounter;
-								NextState <= RS_Wait_VSync;
-							end
-						end						
-					end
-					*/
+					RS_Strobe <= 0;					
 
-					for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin                                
-						if (FrameFinished && RC_Valid[i] && (ShadeOut[i].x == `FRAMEBUFFER_WIDTH - 1) && (ShadeOut[i].y == `FRAMEBUFFER_HEIGHT - 1)) begin						
-							// Compute the total cycles of a frame
+					PixelCounter = 0;
+					for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin                                						
+						PixelCounter = PixelCounter + CorePixelCounter[i];
+						if (PixelCounter >= `FRAMEBUFFER_PIXEL_COUNT) begin														
 							FrameCounter = FrameCounter + 1;
-							FrameKCycles <= FrameKCycleCounter;
+							FrameKCycles = FrameKCycleCounter;
 							NextState <= RS_Wait_VSync;
-						end												
+						end						
 					end				
                 end              
 
@@ -308,8 +298,7 @@ module Renderer(
 		.rs(RenderState),
 		.output_fifo_full(RC_FIFOFull),
     	.x0(x),
-    	.y0(y),	
-		.frame_finished(FrameFinished),
+    	.y0(y),			
     	.thread_out(TG_Output)
     );
 
@@ -319,11 +308,14 @@ module Renderer(
 			DebugCore DEBGCORE(
 				.clk(clk),
 				.resetn(resetn),		          
+				.reset_pixel_counter(State == RS_FrameSetup),
 				// controls...
 				.add_input(TG_Output[i].DataValid),
 				// inputs...
 				.input_data(TG_Output[i].RayCoreInput),                
 				.rs(RenderState),	
+
+				.pixel_counter(CorePixelCounter[i]),
 				.frame_counter(FrameCounter),
 				// outputs...		
 				.fifo_full(RC_FIFOFull[i]),        
@@ -378,11 +370,14 @@ module Renderer(
 			RayCore RAYCORE(
 				.clk(clk),
 				.resetn(resetn),
+				.reset_pixel_counter(State == RS_FrameSetup),
 
 				.add_input(TG_Output[i].DataValid),					
 				.input_data(TG_Output[i].RayCoreInput),                
 
-				.rs(RenderState),					
+				.rs(RenderState),	
+
+				.pixel_counter(CorePixelCounter[i]),
 				.fifo_full(RC_FIFOFull[i]),        
 				.valid(RC_Valid[i]),
 				.shade_out(ShadeOut[i]),        

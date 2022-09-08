@@ -21,7 +21,31 @@
 `include "../Math/Fixed3.sv"
 `include "../Math/FixedNorm.sv"
 `include "../Math/FixedNorm3.sv"
+//-------------------------------------------------------------------
+//
+//-------------------------------------------------------------------    
+module _PixelCounter(    
+    input clk,
+	input resetn,        	
+    input valid,
+    input reset_pixel_counter,
+    output logic [31:0] pixel_counter
+    );
 
+    always_ff @(posedge clk, negedge resetn) begin			
+		if (!resetn) begin			
+			pixel_counter <= 0;
+		end
+		else begin				
+            if (reset_pixel_counter) begin
+                pixel_counter = 0;
+            end
+            else if (valid) begin
+                pixel_counter = pixel_counter + 1;
+            end
+        end
+    end		
+endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
@@ -35,6 +59,7 @@ module RayCore(
     // inputs...    
     input SurfaceInputData input_data,        
     input RenderState rs,
+    input reset_pixel_counter,
     input BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
     input BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE],
     input BVH_Node node_0,    
@@ -45,6 +70,7 @@ module RayCore(
     // outputs...  
     output logic fifo_full,        
     output logic valid,
+    output logic [31:0] pixel_counter,
     output ShadeOutputData shade_out,
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive_0,
 	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive_0,	    
@@ -63,7 +89,7 @@ module RayCore(
     logic SHAD_Valid, SHAD_FIFO_Full;
 
     logic SHAD_REF_Valid;
-    SurfaceInputData SHAD_REF_Output;
+    SurfaceInputData SHAD_REF_Output;    
 		
     // 3 pipeline stages : SURF -> SHDW -> SHAD, the SHAD output will be redirected back to SURF for the reflection/refraction
     // For example : (SURF -> SHDW -> SHAD) -> (SURF -> SHDW -> SHAD) -> (SURF -> SHDW -> SHAD) -> Frame Buffer for 3 bounces
@@ -86,6 +112,7 @@ module RayCore(
     //------------------------------------------------------------------------------------
     //  c8          Frag_N+6        Frag_N+5        Frag_N+4            Frag_N+1_Ref
     //------------------------------------------------------------------------------------
+    
     Surface SURF(    
         .clk(clk),
         .resetn(resetn),
@@ -138,5 +165,13 @@ module RayCore(
         .ref_out(SHAD_REF_Output),
         .output_fifo_full(SURF_REF_FIFO_Full)        
     );        
-    
+
+    _PixelCounter PIXEL_COUNTER(
+        .clk(clk),
+        .resetn(resetn),
+        .reset_pixel_counter(reset_pixel_counter),
+        .valid(valid),
+        .pixel_counter(pixel_counter)        
+    );      
+
 endmodule

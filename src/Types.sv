@@ -80,6 +80,7 @@
 
 `define FRAMEBUFFER_WIDTH                   10'd320
 `define FRAMEBUFFER_HEIGHT                  10'd240
+`define FRAMEBUFFER_PIXEL_COUNT             ({{22{1'b0}}, `FRAMEBUFFER_WIDTH} * {{22{1'b0}}, `FRAMEBUFFER_HEIGHT})
 
 // Memory controller -----------------------------------------------------
 parameter DQ_WIDTH                          = 16;
@@ -164,7 +165,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_NODE_STACK_SIZE                  2**`BVH_NODE_STACK_SIZE_WIDTH
 
 // Primitives ---------------------------------------------------------------------
-//`define LOAD_BVH_MODEL                      1
+`define LOAD_BVH_MODEL                      1
 `ifdef LOAD_BVH_MODEL
     `define BVH_MODEL_RAW_DATA_SIZE         207
 `else
@@ -174,16 +175,17 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_AABB_RAW_DATA_SIZE              `BVH_MODEL_RAW_DATA_SIZE + 10
 `define BVH_SPHERE_RAW_DATA_SIZE            4
 
+// Thread Generator ------------------------------------------------------
+`define MULTI_ISSUE                         1
+
 // Ray Core --------------------------------------------------------------
 //`define IMPLEMENT_SHADOWING                 1
-//`define IMPLEMENT_REFLECTION                1
+`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
-//`define IMPLEMENT_BVH_TRAVERSAL             1
+`define IMPLEMENT_BVH_TRAVERSAL             1
 
-//`define DEBUG_CORE                            1
-//`define SIMPLE_RAY_CORE                     1
-//`define TEST_RAY_CORE                       1
-`define RAY_CORE_SIZE_WIDTH                 1
+//`define DEBUG_CORE                          1
+`define RAY_CORE_SIZE_WIDTH                 0
 `define RAY_CORE_SIZE                       2**`RAY_CORE_SIZE_WIDTH
 
 `define AABB_TEST_UNIT_SIZE_WIDTH           0
@@ -484,7 +486,8 @@ typedef enum logic [3:0] {
     TGS_Init                = 4'd0, 
     TGS_Wait                = 4'd1,
     TGS_Generate            = 4'd2,         
-    TGS_NextThread          = 4'd3          
+    TGS_NextThread          = 4'd3,
+    TGS_Debug               = 4'd4          
 } ThreadGeneratorState;
 
 typedef struct { 
