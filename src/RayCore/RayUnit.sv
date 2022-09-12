@@ -127,14 +127,19 @@ endmodule
 // Find the closest hit of primitives against the ray and compute the
 // normal direction.
 //-------------------------------------------------------------------    
-module RayUnit_FindClosestHit (    
+module RayUnit_FindClosestHit (        
+    input clk,
+	input resetn,    
     input Ray r,    
     input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
-    input BVH_Primitive_Sphere ps[`SPHERE_TEST_UNIT_SIZE],
+    //input BVH_Primitive_Sphere ps[`SPHERE_TEST_UNIT_SIZE],
+    output valid,
     output HitData hit_data
 	);
 
     HitData HitData[`AABB_TEST_UNIT_SIZE];    
+
+    assign valid = 1;
 
     // AABB test
     generate
@@ -190,7 +195,7 @@ module RayUnit_FindAnyHit (
     //TODO : Triangle test
 
     // Process all HitData and output the FinalHitData
-    FindAnyHit PRP(        
+    FindAnyHit#(`AABB_TEST_UNIT_SIZE) PRP(
         .hit_data(HitData),	
         .out_hit(out_hit)		
     );  

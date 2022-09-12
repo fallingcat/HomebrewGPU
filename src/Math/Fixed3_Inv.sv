@@ -33,9 +33,9 @@ module Fixed3_Inv_V2(
     logic Valid[3];
 	Fixed3 Out;	
 	
-	assign ov.Dim[0] = (IsFixedInf(Out.Dim[0])) ? FixedZero() : Out.Dim[0];
-	assign ov.Dim[1] = (IsFixedInf(Out.Dim[1])) ? FixedZero() : Out.Dim[1];
-	assign ov.Dim[2] = (IsFixedInf(Out.Dim[2])) ? FixedZero() : Out.Dim[2];	
+	assign ov.Dim[0] = (IsFixedInf(Out.Dim[0])) ? _Fixed(0) : Out.Dim[0];
+	assign ov.Dim[1] = (IsFixedInf(Out.Dim[1])) ? _Fixed(0) : Out.Dim[1];
+	assign ov.Dim[2] = (IsFixedInf(Out.Dim[2])) ? _Fixed(0) : Out.Dim[2];	
 
 	always_ff @(posedge clk) begin
 		if (strobe || Counter == 3) begin	
@@ -65,7 +65,7 @@ module Fixed3_Inv_V2(
 		.clk(clk),
 		.resetn(resetn),
 		.strobe(strobe),
-		.a(FixedOne()), 
+		.a(_Fixed(1)), 
 		.b(v.Dim[0]), 
 		.valid(Valid[0]),
 		.q(Out.Dim[0])		
@@ -75,7 +75,7 @@ module Fixed3_Inv_V2(
 		.clk(clk), 
 		.resetn(resetn),
 		.strobe(strobe),
-		.a(FixedOne()),
+		.a(_Fixed(1)),
 		.b(v.Dim[1]), 
 		.valid(Valid[1]),
 		.q(Out.Dim[1])		
@@ -85,7 +85,7 @@ module Fixed3_Inv_V2(
 		.clk(clk),
 		.resetn(resetn),
 		.strobe(strobe),
-		.a(FixedOne()),
+		.a(_Fixed(1)),
 		.b(v.Dim[2]), 
 		.valid(Valid[2]),
 		.q(Out.Dim[2])
@@ -105,15 +105,15 @@ module Fixed3_Inv_V3(
 	Fixed3 Out;
 	
 	assign valid = (Valid[0] & Valid[1] & Valid[2]);	
-	assign ov.Dim[0] = (IsFixedInf(Out.Dim[0])) ? FixedZero() : Out.Dim[0];
-	assign ov.Dim[1] = (IsFixedInf(Out.Dim[1])) ? FixedZero() : Out.Dim[1];
-	assign ov.Dim[2] = (IsFixedInf(Out.Dim[2])) ? FixedZero() : Out.Dim[2];	
+	assign ov.Dim[0] = (IsFixedInf(Out.Dim[0])) ? _Fixed(0) : Out.Dim[0];
+	assign ov.Dim[1] = (IsFixedInf(Out.Dim[1])) ? _Fixed(0) : Out.Dim[1];
+	assign ov.Dim[2] = (IsFixedInf(Out.Dim[2])) ? _Fixed(0) : Out.Dim[2];	
 		
 	Fixed_Div_V3 FD0 (
 		.clk(clk),
 		.resetn(resetn),
 		.strobe(strobe),
-		.a(FixedOne()), 
+		.a(_Fixed(1)), 
 		.b(v.Dim[0]), 
 		.valid(Valid[0]),
 		.q(Out.Dim[0])		
@@ -123,7 +123,7 @@ module Fixed3_Inv_V3(
 		.clk(clk), 
 		.resetn(resetn),
 		.strobe(strobe),
-		.a(FixedOne()),
+		.a(_Fixed(1)),
 		.b(v.Dim[1]), 
 		.valid(Valid[1]),
 		.q(Out.Dim[1])		
@@ -133,7 +133,7 @@ module Fixed3_Inv_V3(
 		.clk(clk),
 		.resetn(resetn),
 		.strobe(strobe),
-		.a(FixedOne()),
+		.a(_Fixed(1)),
 		.b(v.Dim[2]), 
 		.valid(Valid[2]),
 		.q(Out.Dim[2])

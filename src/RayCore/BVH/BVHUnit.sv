@@ -135,10 +135,6 @@ module BVHUnit (
     logic [`BVH_NODE_INDEX_WIDTH-1:0] NodeStack[`BVH_NODE_STACK_SIZE];
     logic [`BVH_NODE_STACK_SIZE_WIDTH:0] NodeStackBottom;
     logic [`BVH_NODE_INDEX_WIDTH-1:0] CurrentNodeIndex;    
-    //BVH_Node CurrentNode;
-    //BVH_Leaf CurrentLeaf[2];       
-    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrim[2];
-    logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] NumPrim[2];
     
     logic NodeVisible;        
     logic ChildNodeVisible[2];   
@@ -300,23 +296,20 @@ module BVHUnit (
     end       	          
 
     AABBTest AABB_NODE_TEST(
-        .orig(r.Orig),
-        .invdir(r.InvDir),
+        .r(r),        
         .aabb(node.Aabb),
         .hit(NodeVisible)
     );
     
     `ifdef BVH_LEAF_AABB_TEST    
         AABBTest AABB_LEAF_TEST0(
-            .orig(r.Orig),
-            .invdir(r.InvDir),
+            .r(r),            
             .aabb(leaf[0].Aabb),
             .hit(ChildNodeVisible[0])
         );              
 
         AABBTest AABB_LEAF_TEST1(
-            .orig(r.Orig),
-            .invdir(r.InvDir),
+            .r(r),            
             .aabb(leaf[1].Aabb),
             .hit(ChildNodeVisible[1])
         );                    

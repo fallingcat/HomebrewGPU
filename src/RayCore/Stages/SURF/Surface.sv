@@ -24,41 +24,15 @@
 `include "../../../Math/FixedNorm.sv"
 `include "../../../Math/FixedNorm3.sv"
 
-//-------------------------------------------------------------------
-//
-//-------------------------------------------------------------------    
-module _Texturing (
-    input clk,    
-    input strobe,
-    input RGB8 color,
-    input Fixed3 pos,
-    input logic hit,
-    input logic `PRIMITIVE_INDEX pi,
-    output RGB8 out
-    );
-    logic [27:0] PX, PZ;
+//`define PRIMITIVE_FIFO
 
-    always_ff @(posedge clk) begin    
-        if (strobe) begin
-            out <= color;        
-            if (hit && pi == `BVH_MODEL_RAW_DATA_SIZE) begin
-                PX = pos.Dim[0].Value >> (`FIXED_FRAC_WIDTH + 4);
-                PZ = pos.Dim[2].Value >> (`FIXED_FRAC_WIDTH + 4);
-                if (PX[0] ^ PZ[0]) begin                                    
-                    out.Channel[0] <= color.Channel[0] >> 1;
-                    out.Channel[1] <= color.Channel[1] >> 1;
-                    out.Channel[2] <= color.Channel[2] >> 1;
-                end      
-            end                      
-        end        
-    end    
-endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SetupClosestHitData ( 
+module _SetupClosestHitData ( 
     input clk,    
-    input logic reset,    
+    input reset,    
+    input strobe,
     input RGB8 color,           
     input HitData hit_data,     
     output HitData closest_hit_data     
@@ -72,10 +46,12 @@ module SetupClosestHitData (
             closest_hit_data.Color <= color;   
             closest_hit_data.T.Value = `FIXED_MAX;
         end
-        else begin            
-            if (hit_data.SurfaceType != ST_None && IsClosestHit) begin                
-                closest_hit_data = hit_data;
-            end                    
+        else begin      
+            if (strobe) begin
+                if (hit_data.SurfaceType != ST_None && IsClosestHit) begin                
+                    closest_hit_data = hit_data;
+                end                    
+            end
         end        
     end
     
@@ -84,15 +60,64 @@ endmodule
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module SurfaceCombineOutput (      
+module _ClosestHit (      
     input clk,
+	input resetn,    
+    input reset,
+    input strobe,
+    input Ray r,    
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
+    //input BVH_Primitive_Sphere ps[`SPHERE_TEST_UNIT_SIZE],   
+    input RGB8 color,     
+    output logic valid,         
+    output HitData closest_hit_data,     
+    output Fixed3 hit_pos
+    );
+
+    logic HitDataValid;
+    HitData HitData;
+    Fixed3 D;
+
+    assign valid = HitDataValid;
+
+    // Find the current closest hit from current primitive(s)
+    RayUnit_FindClosestHit RU(
+        .clk(clk),	 
+        .resetn(resetn),        
+		.r(r), 		
+		.p(p),
+        .valid(HitDataValid),
+		.hit_data(HitData)		
+	);    
+
+    // Setup HitData if the current closest hit is the final closest hit
+    _SetupClosestHitData SETUP_HITDATA( 
+        .clk(clk),	         
+        .reset(reset),   
+        .strobe(strobe && HitDataValid),     
+        .color(color),                
+        .hit_data(HitData),        
+        .closest_hit_data(closest_hit_data)     
+    );              
+
+    Fixed3_Mul A1(closest_hit_data.T, r.Dir, D);
+    Fixed3_Add A2(r.Orig, D, hit_pos);            
+endmodule
+
+//-------------------------------------------------------------------
+//
+//-------------------------------------------------------------------    
+module _SurfaceOutput (    
+    input clk,  
     input strobe,  
     input Fixed3 light_dir,  
     input Fixed3 light_invdir,
     input SurfaceInputData input_data,
     input HitData hit_data,
+    input Fixed3 hit_pos,
     output SurfaceOutputData out
     );
+    
     always_ff @(posedge clk) begin
         if (strobe) begin
             out.LastColor <= input_data.LastColor;
@@ -108,10 +133,23 @@ module SurfaceCombineOutput (
             out.ShadowRay.InvDir <= light_invdir;                                
             out.ShadowRay.MinT <= _Fixed(0);
             out.ShadowRay.MaxT <= _Fixed(-1);                                                      
-            out.ShadowRay.PI <= hit_data.PI;            
+            out.ShadowRay.PI <= hit_data.PI;   
+            out.HitPos <= hit_pos;
+            
+            // Texturing for this fragment if it is a fragment from ground primitive
+            if (hit_data.SurfaceType != ST_None && hit_data.PI == `BVH_MODEL_RAW_DATA_SIZE && (hit_pos.Dim[0].Value[18] ^ hit_pos.Dim[2].Value[18])) begin            
+                out.Color.Channel[0] <= hit_data.Color.Channel[0] >> 1;
+                out.Color.Channel[1] <= hit_data.Color.Channel[1] >> 1;
+                out.Color.Channel[2] <= hit_data.Color.Channel[2] >> 1;                
+            end                               
+            else begin
+                out.Color <= hit_data.Color;        
+            end
         end        
     end
 endmodule
+
+`ifdef PRIMITIVE_FIFO
 //-------------------------------------------------------------------
 // Do BVH traversal and find the primitives which may have possible hit.
 // Then use Ray unit to find the closest hit.
@@ -134,17 +172,22 @@ module SurfaceUnit (
     input BVH_Leaf leaf[2],    
 
     // outputs...  
+    output DebugData debug_data,    
+
     output logic fifo_full,        
     output logic valid,
-    output SurfaceOutputData out,           
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
+    output SurfaceOutputData out, 
+
+    output PrimitiveQueryData primitive_query,
+    
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index    
     );       
     
     SurfaceState State, NextState = SURFS_Init;         
     SurfaceInputData Input, CurrentInput;
-    HitData HitData, ClosestHitData;	         
+    HitData ClosestHitData;	      
+    Fixed3 ClosestHitPos;       
+    logic PrimitiveFIFOEmpty, ResetClosestHitData, PrimFIFOReset, PrimFIFOPush, PrimFIFOPop, HitDataValid;
     
     // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
@@ -154,24 +197,227 @@ module SurfaceUnit (
     // Store the primitive groups data. Each group present a range of primitives
     // which may have possible hit.
     PrimitiveGroupFIFO PrimitiveFIFO;	
+    PrimitiveType CurrentPrimitiveType;
 	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;    
-
-    logic ResetClosestHitData;    
     
-    Fixed3 D;
+    //assign debug_data.LED[0] = (State == SURFS_Done);
+
+    always_ff @(posedge clk, negedge resetn) begin
+        if (!resetn) begin
+            fifo_full <= 0; 
+            NextState <= SURFS_Init;
+        end
+        else begin           
+            // If ray FIFO is not full
+            if (!fifo_full) begin        
+                if (add_input) begin
+                    // Add one ray into ray FIFO                
+                    Input = input_data;                                
+                    fifo_full = 1;                            
+                end               
+            end                       
+
+            State = NextState;
+            case (State)
+                (SURFS_Init): begin    
+                    valid <= 0;
+                    BU_Strobe <= 0;
+                    BU_RestartStrobe <= 0;  
+
+                    PrimFIFOPush <= 0;
+                    PrimFIFOPop <= 0;
+                    
+                    if (fifo_full) begin                        
+                        CurrentInput = Input;                  
+                        fifo_full <= 0;
+                        ResetClosestHitData <= 1;
+                        BU_Strobe <= 1;
+
+                        PrimFIFOReset <= 1;                         
+                        PrimFIFOPop <= 1;                        
+
+                        NextState <= SURFS_Surfacing;                                                   
+                    end                    
+                end   
+                
+                (SURFS_Surfacing): begin                    
+                    ResetClosestHitData <= 0;
+                    valid <= 0;                    
+                    BU_Strobe <= 0;       
+
+                    PrimFIFOReset <= 0;  
+                    PrimFIFOPush <= 1;                 
+                    PrimFIFOPop <= 1;
+
+                    //NextState <= SURFS_WaitHitData;                    
+
+                    if (BU_Finished && PrimitiveFIFOEmpty) begin                                          
+                        NextState <= SURFS_Done;
+                    end             
+                end               
+
+                (SURFS_WaitHitData): begin   
+                    PrimFIFOPush <= 1;                 
+                    PrimFIFOPop <= 0;
+
+                    if (BU_Finished && PrimitiveFIFOEmpty) begin                                          
+                        NextState <= SURFS_Done;
+                    end             
+                    else if (HitDataValid) begin
+                        NextState <= SURFS_Surfacing;
+                    end       
+                end                        
+                
+                (SURFS_Done): begin
+                    if (!output_fifo_full) begin
+                        valid <= 1;          
+                        BU_Strobe <= 0;
+                        BU_RestartStrobe <= 1;    
+
+                        PrimFIFOReset <= 0;  
+                        PrimFIFOPush <= 0;
+                        PrimFIFOPop <= 0;
+
+                        NextState <= SURFS_Init;            
+                    end                    
+                end
+                
+                default: begin
+                    NextState <= SURFS_Init;
+                end            
+            endcase                
+        end        
+    end         
+    
+    // Traverse BVH tree and find the possible hit primitives 
+    BVHUnit BU(    
+        .clk(clk),	 
+        .resetn(resetn),
+        .strobe(BU_Strobe),    
+        .restart_strobe(BU_RestartStrobe),
+        .offset(rs.PositionOffset),
+        .r(CurrentInput.SurfaceRay),
+
+        .start_prim(LeafStartPrim),    
+        .num_prim(LeafNumPrim), 
+
+        .node_index(node_index),        
+        .node(node),        
+        .leaf(leaf),
+
+        .finished(BU_Finished)        
+    );
+
+    PrimitiveFIFO PRIM_FIFO(
+        .clk(clk),	 
+        .resetn(resetn),
+        .reset(PrimFIFOReset),
+
+        .push(PrimFIFOPush),
+        .prim_type(PT_AABB),
+        .start_prim(LeafStartPrim),
+        .num_prim(LeafNumPrim),
+
+        .debug_data(debug_data),
+
+        .pop(PrimFIFOPop),
+        .empty(PrimitiveFIFOEmpty),
+        .primitive_query(primitive_query)
+    );        
+    
+    _ClosestHit FIND_CLOSEST_HIT(      
+        .clk(clk),
+        .resetn(resetn),    
+        .reset(ResetClosestHitData),
+        .strobe(State != SURFS_Done),
+        .r(CurrentInput.SurfaceRay), 		
+        .p(p),
+        .color(rs.ClearColor),               
+
+        .valid(HitDataValid),
+        .closest_hit_data(ClosestHitData),
+        .hit_pos(ClosestHitPos)
+    );
+
+   // Prepare the output data for next stage
+    _SurfaceOutput SURF_OUT (      
+        .clk(clk),
+        .strobe(State == SURFS_Done),
+        .light_dir(rs.Light[0].Dir),
+        .light_invdir(rs.Light[0].InvDir),
+        .input_data(CurrentInput),
+        .hit_data(ClosestHitData),
+        .hit_pos(ClosestHitPos),
+        .out(out)
+    );
+
+endmodule
+
+`else
+
+//-------------------------------------------------------------------
+// Do BVH traversal and find the primitives which may have possible hit.
+// Then use Ray unit to find the closest hit.
+// Finally get the hiy position, normal, color, material, etc. data.
+//-------------------------------------------------------------------    
+module SurfaceUnit (      
+    input clk,
+    input resetn,    
+
+    // controls... 
+    input add_input,
+
+    // inputs...
+    input SurfaceInputData input_data,            
+    input RenderState rs,    
+    input output_fifo_full,	    
+
+    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
+    input BVH_Node node,    
+    input BVH_Leaf leaf[2],    
+
+    // outputs...  
+    output DebugData debug_data,    
+
+    output logic fifo_full,        
+    output logic valid,
+    output SurfaceOutputData out, 
+
+    output PrimitiveQueryData primitive_query,
+    
+    output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index    
+    );       
+    
+    SurfaceState State, NextState = SURFS_Init;         
+    SurfaceInputData Input, CurrentInput;
+    HitData ClosestHitData;	      
+    Fixed3 ClosestHitPos;       
+    logic ResetClosestHitData, HitDataValid;
+    
+    // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
+    logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] LeafStartPrim[2];
+    logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] LeafNumPrim[2];       
+
+    // Store the primitive groups data. Each group present a range of primitives
+    // which may have possible hit.
+    PrimitiveGroupFIFO PrimitiveFIFO;	
+    PrimitiveType CurrentPrimitiveType;
+	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;    
     
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-	function NextPrimitiveData;
+	function void NextPrimitiveData;
         StartPrimitiveIndex = StartPrimitiveIndex + `AABB_TEST_UNIT_SIZE;       
 	endfunction    
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function QueuePrimitiveGroup;	
+    function void QueuePrimitiveGroup;	
         for (int i = 0; i < 2; i = i + 1) begin
             if (LeafNumPrim[i] > 0) begin
+                PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_AABB;
                 PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = LeafStartPrim[i];
                 PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = LeafNumPrim[i];		    
                 PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
@@ -181,7 +427,8 @@ module SurfaceUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-	function DequeuePrimitiveGroup;		
+	function void DequeuePrimitiveGroup;		
+        CurrentPrimitiveType = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].PrimType; 
 		StartPrimitiveIndex = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].StartPrimitive;                
         AlignedNumPrimitives = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].NumPrimitives;
         RealEndPrimitiveIndex = StartPrimitiveIndex + AlignedNumPrimitives;
@@ -198,7 +445,12 @@ module SurfaceUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function QueueGlobalPrimitives();
+    function void QueueGlobalPrimitives();
+        //PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_Sphere;
+        //PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = 0;
+        //PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 1;		    
+        //PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
+        
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_AABB;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_GLOBAL_PRIMITIVE_START_IDX;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 3;		    
@@ -207,16 +459,11 @@ module SurfaceUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------        
-    assign start_primitive = StartPrimitiveIndex;  
-    assign end_primitive = RealEndPrimitiveIndex;  
 
-    /*
-    initial begin	        
-        fifo_full <= 0;
-        NextState <= SURFS_Init;
-	end	    
-    */
-
+    assign primitive_query.PrimType = CurrentPrimitiveType;
+    assign primitive_query.StartIndex = StartPrimitiveIndex;
+    assign primitive_query.EndIndex = EndPrimitiveIndex;
+    
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
             fifo_full <= 0; 
@@ -239,9 +486,9 @@ module SurfaceUnit (
                     BU_Strobe <= 0;
                     BU_RestartStrobe <= 0;                    
 
-                    StartPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;
-                    EndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
-                    RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;         
+                    StartPrimitiveIndex <= 0;
+                    EndPrimitiveIndex <= 0;             
+                    RealEndPrimitiveIndex <= 0;         
 
                     if (fifo_full) begin                        
                         CurrentInput = Input;                  
@@ -254,6 +501,7 @@ module SurfaceUnit (
 
                         BU_Strobe <= 1;                                                                    
                         QueueGlobalPrimitives();    
+                        
                         NextState <= SURFS_Surfacing;                                                   
                     end                    
                 end   
@@ -261,33 +509,49 @@ module SurfaceUnit (
                 (SURFS_Surfacing): begin                    
                     ResetClosestHitData <= 0;
                     valid <= 0;                    
-                    BU_Strobe <= 0;       
+                    BU_Strobe <= 0;                           
 
                     // Queue possible hit primitives if there is any.  
                     QueuePrimitiveGroup();
-                    
-                    if (StartPrimitiveIndex != EndPrimitiveIndex) begin			                        
-                        // Process next batch of primitives.
-                        NextPrimitiveData();						                                            
-                    end
-                    else begin
+
+                    // If there are no primitives need to be processed
+                    if (StartPrimitiveIndex >= EndPrimitiveIndex) begin	                        		                             
                         if (PrimitiveFIFO.Top != PrimitiveFIFO.Bottom) begin
                             // Dequeue possible hit primitives for closest hit test.
-                            DequeuePrimitiveGroup();                                                    
+                            DequeuePrimitiveGroup();                                
+                            if (CurrentPrimitiveType == PT_Sphere) begin
+                                NextState <= SURFS_WaitHitData;				                                                                                            
+                            end
                         end
                         else begin
-                            if (BU_Finished) begin          
-                                // All possible hit primitives are processed.
+                            // All possible hit primitives are processed.
+                            if (BU_Finished) begin                                          
                                 NextState <= SURFS_Done;
                             end                            
-                        end                    
-                    end                                                                                
-                end                        
+                        end               
+                    end
+                    // If there are primitives need to be processed, fetch next primitive
+                    else begin                        
+                        NextPrimitiveData();		                        
+                        if (CurrentPrimitiveType == PT_Sphere) begin
+                            NextState <= SURFS_WaitHitData;				                                            
+                        end
+                    end                    
+                end               
 
+                (SURFS_WaitHitData): begin                    
+                    // Queue possible hit primitives if there is any.  
+                    QueuePrimitiveGroup();
+
+                    if (HitDataValid) begin
+                        NextState <= SURFS_Surfacing;
+                    end                                        
+                end                        
+                
                 (SURFS_Done): begin
-                    StartPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;
-                    EndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
-                    RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;         
+                    StartPrimitiveIndex <= 0;
+                    EndPrimitiveIndex <= 0;             
+                    RealEndPrimitiveIndex <= 0;         
 
                     if (!output_fifo_full) begin
                         valid <= 1;          
@@ -302,8 +566,8 @@ module SurfaceUnit (
                 end            
             endcase                
         end        
-    end     
-    
+    end        
+
     // Traverse BVH tree and find the possible hit primitives 
     BVHUnit BU(    
         .clk(clk),	 
@@ -322,49 +586,37 @@ module SurfaceUnit (
 
         .finished(BU_Finished)        
     );
-    
-    // Find the closest hit point from all possible primitives
-    RayUnit_FindClosestHit RU(
-		.r(CurrentInput.SurfaceRay), 		
-		.p(p),
-		.hit_data(HitData)		
-	);    
 
-    // Setup HitData for the closest hit
-    SetupClosestHitData SETUP_HITDATA( 
-        .clk(clk),	         
-        .reset(ResetClosestHitData),        
-        .color(rs.ClearColor),                
-        .hit_data(HitData),        
-        .closest_hit_data(ClosestHitData)     
-    );        
-    
-    Fixed3_Mul A1(ClosestHitData.T, CurrentInput.SurfaceRay.Dir, D);
-    Fixed3_Add A2(CurrentInput.SurfaceRay.Orig, D, out.HitPos);            
-
-    // Prepare the output data for next stage
-    SurfaceCombineOutput CO (      
+    // Find the closest hit from the all possible hit primitives 
+    _ClosestHit FIND_CLOSEST_HIT(      
         .clk(clk),
-        .strobe(NextState == SURFS_Done),
+        .resetn(resetn),    
+        .reset(ResetClosestHitData),
+        .strobe(State != SURFS_Done),
+        .r(CurrentInput.SurfaceRay), 		
+        .p(p),
+        .color(rs.ClearColor),                       
+        .valid(HitDataValid),
+        .closest_hit_data(ClosestHitData),
+        .hit_pos(ClosestHitPos)
+    );
+  
+    // Prepare the output data for next stage
+    _SurfaceOutput SURF_OUT (      
+        .clk(clk),
+        .strobe(State == SURFS_Done),
         .light_dir(rs.Light[0].Dir),
         .light_invdir(rs.Light[0].InvDir),
         .input_data(CurrentInput),
         .hit_data(ClosestHitData),
+        .hit_pos(ClosestHitPos),
         .out(out)
     );
-    
-    // Texturing for this fragment if it is a fragment from ground primitive
-    _Texturing TX(
-        .clk(clk),
-        .strobe(NextState == SURFS_Done),
-        .color(ClosestHitData.Color),
-        .pos(out.HitPos),
-        .hit(ClosestHitData.SurfaceType != ST_None),
-        .pi(ClosestHitData.PI),
-        .out(out.Color)
-    );        
 
 endmodule
+
+`endif
+
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
@@ -387,12 +639,15 @@ module Surface (
     input BVH_Leaf leaf[2],           
 
     // outputs...  
+    output DebugData debug_data,    
+
     output logic fifo_full,        
     output logic ref_fifo_full,        
     output logic valid,
-    output SurfaceOutputData out,           
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
+    output SurfaceOutputData out,
+
+    output PrimitiveQueryData primitive_query,
+    
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index        
     );       
 
@@ -422,10 +677,11 @@ module Surface (
         .output_fifo_full(output_fifo_full),
         .valid(valid),
         .out(out),
-        .fifo_full(SURF_FIFO_Full),
-        
-        .start_primitive(start_primitive),
-        .end_primitive(end_primitive),
+        .fifo_full(SURF_FIFO_Full),       
+
+        .debug_data(debug_data),
+
+        .primitive_query(primitive_query),
         .p(p),
 
         .node_index(node_index),

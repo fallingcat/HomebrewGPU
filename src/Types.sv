@@ -46,6 +46,8 @@
 
 //`define GPU_CLK_100                         1
 //`define GPU_CLK_50                          1
+`define GPU_CLK_25                          1
+//`define GPU_CLK_12                          1
 
 `ifdef GPU_CLK_100
     `define FIXED_DIV_STEP                  4
@@ -61,7 +63,7 @@
 `define SCREEN_COORD_WIDTH  		        10
 `define SCREEN_COORD			            [`SCREEN_COORD_WIDTH-1:0]
 
-`define PRIMITIVE_INDEX_WIDTH		        16
+`define PRIMITIVE_INDEX_WIDTH		        32
 `define PRIMITIVE_INDEX				        [`PRIMITIVE_INDEX_WIDTH-1:0]
 `define NULL_PRIMITIVE_INDEX                {`PRIMITIVE_INDEX_WIDTH{1'b1}}
 
@@ -115,7 +117,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_LEAVES_PATH                     `STRINGIFY(E:/MyWork/HomebrewGPU/data/chr_sword.vox.bvh.leaves.txt)
 
 // AABB raw data -----------------------------------------------------------
-// [151:56]         = Position.x
+// [151:120]         = Position.x
 // [119:88]         = Position.y
 // [87:56]          = Position.z        
 // [55:24]          = Size        
@@ -124,7 +126,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 // [7:0]            = Color.b
 `define BVH_AABB_RAW_DATA_WIDTH             152
 // Sphere raw data -----------------------------------------------------------
-// [151:56]         = Center.x
+// [151:120]         = Center.x
 // [119:88]         = Center.y
 // [87:56]          = Center.z        
 // [55:24]          = Radius        
@@ -165,7 +167,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_NODE_STACK_SIZE                  2**`BVH_NODE_STACK_SIZE_WIDTH
 
 // Primitives ---------------------------------------------------------------------
-`define LOAD_BVH_MODEL                      1
+//`define LOAD_BVH_MODEL                      1
 `ifdef LOAD_BVH_MODEL
     `define BVH_MODEL_RAW_DATA_SIZE         207
 `else
@@ -180,11 +182,11 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 
 // Ray Core --------------------------------------------------------------
 //`define IMPLEMENT_SHADOWING                 1
-`define IMPLEMENT_REFLECTION                1
+//`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
-`define IMPLEMENT_BVH_TRAVERSAL             1
+//`define IMPLEMENT_BVH_TRAVERSAL             1
 
-//`define DEBUG_CORE                          1
+// `define DEBUG_CORE                          1
 `define RAY_CORE_SIZE_WIDTH                 0
 `define RAY_CORE_SIZE                       2**`RAY_CORE_SIZE_WIDTH
 
@@ -204,7 +206,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 // Configuration >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 typedef struct {
     logic [15:0] LED;
-    logic [15:0] Number;    
+    logic [15:0] Number[2];    
     // UART tx signal, connected to host-PC's UART-RXD, baud=115200 @ 50MHz    
     logic UARTDataValid;
     logic [7:0] UARTData;
@@ -327,7 +329,7 @@ typedef enum logic [3:0] {
     RS_Wait_VSync           = 4'd4    
 } RendererState;
 
-typedef enum logic [5:0] {
+typedef enum logic [3:0] {
     RSS_Init                = 4'd0,
     RSS_InitCameraSetup     = 4'd1,
     RSS_SetupCameraU        = 4'd2, 
@@ -463,10 +465,21 @@ typedef struct {
 } PrimitiveGroup;
 
 typedef struct {
+    PrimitiveType PrimType;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartIndex;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] EndIndex;
+} PrimitiveQueryData;
+
+typedef struct {
     PrimitiveGroup Groups[16];
     logic [3:0] Top;
     logic [3:0] Bottom;
 } PrimitiveGroupFIFO;
+
+typedef enum logic [3:0] {
+    PFS_Init              = 4'd0,    
+    PFS_Working           = 4'd1
+} PrimitiveFIFOState;
 
 // Ray Core >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 typedef enum logic [3:0] {
@@ -506,7 +519,8 @@ typedef struct {
 typedef enum logic [3:0] {
     SURFS_Init              = 4'd0,    
     SURFS_Surfacing         = 4'd1,     
-    SURFS_Done              = 4'd2
+    SURFS_WaitHitData       = 4'd2,     
+    SURFS_Done              = 4'd3
 } SurfaceState;
 
 typedef struct { 

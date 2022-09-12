@@ -36,9 +36,9 @@ module _LightingDiffuse(
     FixedNorm D;  
 
     FixedNorm3_Dot A0(l, n, D);
-    FixedNorm_Less A1(D, FixedNormZero(), Neg);
+    FixedNorm_Less A1(D, _FixedNorm(0), Neg);
 
-    assign o = (shadow || Neg) ? FixedNormZero() : D;
+    assign o = (shadow || Neg) ? _FixedNorm(0) : D;
 
 endmodule
 //-------------------------------------------------------------------
@@ -49,7 +49,6 @@ module _FinalDiffuse(
     input FixedNorm3 n,
     input logic hit,
     input logic shadow,
-    input SurfaceType surface,
     output FixedNorm o
     );
 
@@ -63,9 +62,9 @@ module _FinalDiffuse(
 
     _LightingDiffuse A0(l, n, shadow, D);
     FixedNorm_Add A1(D, Ambient, Diffuse);
-    FixedNorm_Greater A2(Diffuse, FixedNormOne(), Over);
+    FixedNorm_Greater A2(Diffuse, _FixedNorm(1), Over);
 
-    assign o = (Over || !hit) ? FixedNormOne() : Diffuse;
+    assign o = (Over || !hit) ? _FixedNorm(1) : Diffuse;
 
 endmodule 
 //-------------------------------------------------------------------
@@ -232,7 +231,7 @@ module ComputeETA(
                     DivStrobe <= 0;
                     FinalETA = eta;
                     if (strobe) begin
-                        if (Fixed_Less(d, FixedZero())) begin            
+                        if (Fixed_Less(d, _Fixed(0))) begin            
                             FinalETA = eta;
                             NextState <= State_Done; 
                         end 
@@ -270,7 +269,7 @@ module ComputeETA(
         .clk(clk),
         .resetn(resetn),
 		.strobe(DivStrobe),
-        .a(FixedOne()), 
+        .a(_Fixed(1)), 
 		.b(eta), 
 		.valid(DivValid),
 		.q(ETAInv)
@@ -331,7 +330,7 @@ module RefractionDir(
                 end
 
                 State_Done: begin
-                    if (Fixed_Less(K, FixedZero())) begin
+                    if (Fixed_Less(K, _Fixed(0))) begin
                         r <= _Fixed3u(0, 0, 0);
                     end
                     else begin
@@ -673,7 +672,7 @@ module Shade(
         // Fragment of object or empty
         .hit(CurrentInput.SurfaceType != ST_None),
         // Fragment in shadow or not
-        .shadow(CurrentInput.bShadow),        
+        .shadow(CurrentInput.bShadow),   
         // Out : the diffuse value
         .o(Diffuse)
     );

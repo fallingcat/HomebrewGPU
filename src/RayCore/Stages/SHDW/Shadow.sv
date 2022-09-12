@@ -25,14 +25,14 @@
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module ShadowCombineOutput (    
-    input clk,
+module _ShadowOutput (    
     input strobe,    
     input SurfaceOutputData input_data,
     input HitData hit_data,
     output ShadowOutputData out
     );
-    always_ff @(posedge clk) begin
+
+    always_comb begin    
         if (strobe) begin
             out.LastColor <= input_data.LastColor;
             out.BounceLevel <= input_data.BounceLevel;
@@ -73,9 +73,10 @@ module ShadowUnit (
     output logic fifo_full,
     output logic valid,
     output ShadowOutputData out,    
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
-    output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index        
+
+    output PrimitiveQueryData primitive_query,    
+
+    output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index
     );
 
     ShadowState State, NextState = SHDWS_Init;     
@@ -97,13 +98,13 @@ module ShadowUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function NextPrimitiveData;
+    function void NextPrimitiveData;
         StartPrimitiveIndex = StartPrimitiveIndex + `AABB_TEST_UNIT_SIZE;       
 	endfunction    
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function QueuePrimitiveGroup;	
+    function void QueuePrimitiveGroup;	
         for (int i = 0; i < 2; i = i + 1) begin
             if (LeafNumPrim[i] > 0) begin
                 PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = LeafStartPrim[i];
@@ -115,7 +116,7 @@ module ShadowUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-	function DequeuePrimitiveGroup;		
+	function void DequeuePrimitiveGroup;		
 		StartPrimitiveIndex = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].StartPrimitive;                
         AlignedNumPrimitives = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].NumPrimitives;
         RealEndPrimitiveIndex = StartPrimitiveIndex + AlignedNumPrimitives;
@@ -132,7 +133,7 @@ module ShadowUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function QueueGlobalPrimitives();
+    function void QueueGlobalPrimitives();
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_AABB;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_MODEL_RAW_DATA_SIZE;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 3;		    
@@ -141,8 +142,10 @@ module ShadowUnit (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    assign start_primitive = StartPrimitiveIndex;  
-    assign end_primitive = RealEndPrimitiveIndex;  
+
+    assign primitive_query.PrimType = PT_AABB;
+    assign primitive_query.StartIndex = StartPrimitiveIndex;
+    assign primitive_query.EndIndex = EndPrimitiveIndex;
 
     /*
     initial begin	        
@@ -277,8 +280,7 @@ module ShadowUnit (
 	);   
 
     // Setup output for next stage
-    ShadowCombineOutput CO ( 
-        .clk(clk),
+    _ShadowOutput CO(         
         .strobe(NextState == SHDWS_Done),         
         .input_data(CurrentInput),
         .hit_data(AnyHitData),
@@ -307,9 +309,10 @@ module PassOverShadowUnit (
     // outputs...      
     output logic fifo_full,
     output logic valid,
-    output ShadowOutputData out,    
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
+    output ShadowOutputData out,  
+
+    output PrimitiveQueryData primitive_query,  
+
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index               
     );
 
@@ -368,8 +371,7 @@ module PassOverShadowUnit (
     end            
     
     // Setup output for next stage
-    ShadowCombineOutput CO ( 
-        .clk(clk),
+    _ShadowOutput CO (         
         .strobe(NextState == SHDWS_Done),         
         .input_data(CurrentInput),
         .hit_data(AnyHitData),
@@ -399,8 +401,9 @@ module Shadow(
     output logic fifo_full,
     output logic valid,
     output ShadowOutputData out,
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
+
+    output PrimitiveQueryData primitive_query,
+
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index            
     );
 
@@ -412,16 +415,17 @@ module Shadow(
     ShadowUnit SHDW(
         .clk(clk),
         .resetn(resetn),
+
         .add_input(add_input),
         .input_data(input_data),        
+
         .rs(rs),        
-        .output_fifo_full(output_fifo_full),
+        .output_fifo_full(output_fifo_full),        
         .valid(valid),
         .out(out),
         .fifo_full(fifo_full),
 
-        .start_primitive(start_primitive),
-        .end_primitive(end_primitive),
+        .primitive_query(primitive_query),
         .p(p),
 
         .node_index(node_index),
@@ -440,8 +444,7 @@ module Shadow(
         .out(out),
         .fifo_full(fifo_full),
 
-        .start_primitive(start_primitive),
-        .end_primitive(end_primitive),
+        .primitive_query(primitive_query),
         .p(p),
 
         .node_index(node_index),

@@ -68,15 +68,19 @@ module RayCore(
     input BVH_Leaf leaf_1[2],
         
     // outputs...  
+    output DebugData debug_data,    
+
     output logic fifo_full,        
     output logic valid,
     output logic [31:0] pixel_counter,
     output ShadeOutputData shade_out,
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive_0,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive_0,	    
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive_1,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive_1,	
+    // The primitive indeices [0] for query
+    output PrimitiveQueryData primitive_query_0,
+    // The primitive indeices [1] for query
+    output PrimitiveQueryData primitive_query_1,
+    // The node index 0 for query
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index_0,
+    // The node index 1 for query
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index_1	
     );       
         
@@ -126,8 +130,11 @@ module RayCore(
         .output_fifo_full(SHDW_FIFO_Full),
         .valid(SURF_Valid),
         .out(SURF_Output),        
-        .start_primitive(start_primitive_0),
-        .end_primitive(end_primitive_0),
+
+        .primitive_query(primitive_query_0),
+
+        .debug_data(debug_data),
+        
         .p(p0),
         .node_index(node_index_0),
         .node(node_0),
@@ -144,8 +151,9 @@ module RayCore(
         .valid(SHDW_Valid),
         .out(SHDW_Output),
         .fifo_full(SHDW_FIFO_Full),
-        .start_primitive(start_primitive_1),
-        .end_primitive(end_primitive_1),
+
+        .primitive_query(primitive_query_1),
+
         .p(p1),
         .node_index(node_index_1),
         .node(node_1),
