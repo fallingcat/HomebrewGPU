@@ -104,7 +104,7 @@ module _QueryPrimitiveSurafceType (
             endcase        
 
             // If pi is not NULL_PRIMITIVE
-            if (pi[`BVH_PRIMITIVE_INDEX_WIDTH-1] == 0) begin        
+            if (pi[`PRIMITIVE_INDEX_WIDTH-1] == 0) begin        
             `ifdef IMPLEMENT_REFRACTION        
                 if (i == (`BVH_GLOBAL_PRIMITIVE_START_IDX + 1)) begin                                
                     out <= ST_Dielectric;            

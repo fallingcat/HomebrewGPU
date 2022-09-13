@@ -51,55 +51,68 @@ module SimpleRendererTest;
 
 	PrimitiveQueryData PrimitiveQuery1[`RAY_CORE_SIZE];
 	BVH_Primitive_AABB P1[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    	
+
+	logic [`BVH_NODE_INDEX_WIDTH-1:0] BVHNodeIndex0[`RAY_CORE_SIZE], BVHNodeIndex1[`RAY_CORE_SIZE];
+	BVH_Node BVHNode0[`RAY_CORE_SIZE], BVHNode1[`RAY_CORE_SIZE];
+	BVH_Leaf BVHLeaf0[`RAY_CORE_SIZE][2], BVHLeaf1[`RAY_CORE_SIZE][2];
+	
+	Fixed3 CameraPos, CameraLook;
+	Fixed CameraFocus;		
+	Fixed Radius, OffsetPosX, OffsetPosZ;
+	logic [31:0] CorePixelCounter[`RAY_CORE_SIZE];
+	logic [31:0] PixelCounter;
+	
+	logic SURF_Valid, SURF_REF_FIFO_Full;
+    SurfaceOutputData SURF_Output;    
+
+    logic SHDW_Valid, SHDW_FIFO_Full;   
+    ShadowOutputData SHDW_Output;          
+     
+    logic SHAD_Valid, SHAD_FIFO_Full;
+
+    logic SHAD_REF_Valid;
+    SurfaceInputData SHAD_REF_Output;    
 	
 
     // Process render state changes.
 	RenderState RS(
-		.clk(CLK),			
-		.rs(RenderState)
-	);
-	
-	// Emit fragment threads for ray cores to process.
-	ThreadGenerator TG(
-    	.clk(CLK),
-		.strobe(1),
-		.reset(0),				
+		.clk(CLK),	
+		.resetn(1'b1),
+		.strobe(1'b1),
+		.pos(CameraPos),
+		.look(CameraLook),		
+		.focus_dist(CameraFocus),
 		.rs(RenderState),
-		.output_fifo_full(RC_FIFOFull),
-    	.x0(0),
-    	.y0(0),			
-    	.thread_out(TG_Output)
+		.valid(RS_Valid)		
+	);
+
+	Surface SURF(    
+        .clk(CLK),
+        .resetn(1'b1),
+		
+        .add_input(1'b1),
+        .input_data(TG_Output[0].RayCoreInput),        
+
+        //.fifo_full(fifo_full),
+        .add_ref_input(1'b0),
+        .ref_input_data(SHAD_REF_Output),        
+        //.ref_fifo_full(SURF_REF_FIFO_Full),
+
+        .rs(RenderState),        
+        .output_fifo_full(SHDW_FIFO_Full),
+
+        .valid(SURF_Valid),
+        .out(SURF_Output),        
+
+        .primitive_query(PrimitiveQuery0[0]),
+
+        //.debug_data(debug_data),
+        
+        .p(P0[0]),
+
+        .node_index(BVHNodeIndex0[0]),
+        .node(BVHNode0[0]),
+        .leaf(BVHLeaf0[0])
     );
-
-    PrimitiveUnit PRIM(   
-		.clk(CLK),	    				
-		.primitive_query_0(PrimitiveQuery0),
-		.p0(P0),		
-		.primitive_query_1(PrimitiveQuery1),		
-		.p1(P1)
-	);			
-
-	generate
-        for (genvar i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin : CORE_ARRY
-			RayCore RAYCORE(
-				.clk(CLK),
-				
-                .add_input(TG_Output[i].DataValid),					
-				.input_data(TG_Output[i].RayCoreInput),                
-
-				.rs(RenderState),	
-
-				.fifo_full(RC_FIFOFull[i]),        
-				.valid(RC_Valid[i]),
-				.shade_out(ShadeOut[i]),        				
-				
-				.primitive_query_0(PrimitiveQuery0[i]),
-				.p0(P0[i]),
-
-				.primitive_query_1(PrimitiveQuery1[i]),				
-				.p1(P1[i])
-			);                			
-        end
-    endgenerate      
 
 endmodule

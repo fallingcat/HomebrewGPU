@@ -199,21 +199,24 @@ module SurfaceUnit (
     PrimitiveGroupFIFO PrimitiveFIFO;	
     PrimitiveType CurrentPrimitiveType;
 	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;    
+    logic FIFOFull = 1'b0;
     
     //assign debug_data.LED[0] = (State == SURFS_Done);
 
+    assign fifo_full = FIFOFull;
+
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
-            fifo_full <= 0; 
+            FIFOFull <= 0; 
             NextState <= SURFS_Init;
         end
         else begin           
             // If ray FIFO is not full
-            if (!fifo_full) begin        
+            if (!FIFOFull) begin        
                 if (add_input) begin
                     // Add one ray into ray FIFO                
                     Input = input_data;                                
-                    fifo_full = 1;                            
+                    FIFOFull = 1;                            
                 end               
             end                       
 
@@ -227,9 +230,9 @@ module SurfaceUnit (
                     PrimFIFOPush <= 0;
                     PrimFIFOPop <= 0;
                     
-                    if (fifo_full) begin                        
+                    if (FIFOFull) begin                        
                         CurrentInput = Input;                  
-                        fifo_full <= 0;
+                        FIFOFull <= 0;
                         ResetClosestHitData <= 1;
                         BU_Strobe <= 1;
 
@@ -404,7 +407,8 @@ module SurfaceUnit (
     PrimitiveGroupFIFO PrimitiveFIFO;	
     PrimitiveType CurrentPrimitiveType;
 	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;    
-    
+    logic FIFOFull = 1'b0; 
+        
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
@@ -460,22 +464,23 @@ module SurfaceUnit (
     //
     //-------------------------------------------------------------------        
 
+    assign fifo_full = FIFOFull;
     assign primitive_query.PrimType = CurrentPrimitiveType;
     assign primitive_query.StartIndex = StartPrimitiveIndex;
     assign primitive_query.EndIndex = EndPrimitiveIndex;
     
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
-            fifo_full <= 0; 
+            FIFOFull <= 0; 
             NextState <= SURFS_Init;
         end
         else begin           
             // If ray FIFO is not full
-            if (!fifo_full) begin        
+            if (!FIFOFull) begin        
                 if (add_input) begin
                     // Add one ray into ray FIFO                
                     Input = input_data;                                
-                    fifo_full = 1;                            
+                    FIFOFull = 1;                            
                 end               
             end                       
 
@@ -490,9 +495,9 @@ module SurfaceUnit (
                     EndPrimitiveIndex <= 0;             
                     RealEndPrimitiveIndex <= 0;         
 
-                    if (fifo_full) begin                        
+                    if (FIFOFull) begin                        
                         CurrentInput = Input;                  
-                        fifo_full <= 0;
+                        FIFOFull <= 0;
                         ResetClosestHitData <= 1;
 
                         // Init BVH traversal

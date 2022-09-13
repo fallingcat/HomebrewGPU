@@ -63,7 +63,7 @@
 `define SCREEN_COORD_WIDTH  		        10
 `define SCREEN_COORD			            [`SCREEN_COORD_WIDTH-1:0]
 
-`define PRIMITIVE_INDEX_WIDTH		        32
+`define PRIMITIVE_INDEX_WIDTH		        16
 `define PRIMITIVE_INDEX				        [`PRIMITIVE_INDEX_WIDTH-1:0]
 `define NULL_PRIMITIVE_INDEX                {`PRIMITIVE_INDEX_WIDTH{1'b1}}
 
@@ -181,8 +181,8 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define MULTI_ISSUE                         1
 
 // Ray Core --------------------------------------------------------------
-//`define IMPLEMENT_SHADOWING                 1
-//`define IMPLEMENT_REFLECTION                1
+`define IMPLEMENT_SHADOWING                 1
+`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
 //`define IMPLEMENT_BVH_TRAVERSAL             1
 

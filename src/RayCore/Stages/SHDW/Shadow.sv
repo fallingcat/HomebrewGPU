@@ -94,6 +94,7 @@ module ShadowUnit (
     // which may have possible hit.
     PrimitiveGroupFIFO PrimitiveFIFO;	
 	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;
+    logic FIFOFull = 1'b0;
 
     //-------------------------------------------------------------------
     //
@@ -143,29 +144,24 @@ module ShadowUnit (
     //
     //-------------------------------------------------------------------    
 
+    assign fifo_full = FIFOFull;
+
     assign primitive_query.PrimType = PT_AABB;
     assign primitive_query.StartIndex = StartPrimitiveIndex;
     assign primitive_query.EndIndex = EndPrimitiveIndex;
-
-    /*
-    initial begin	        
-        fifo_full <= 0;
-        NextState <= SHDWS_Init;
-	end	   
-    */
-    
+        
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
-            fifo_full <= 0;
+            FIFOFull <= 0;
             NextState <= SHDWS_Init;
         end
         else begin           
             // If ray FIFO is not full
-            if (!fifo_full) begin        
+            if (!FIFOFull) begin        
                 if (add_input) begin
                     // Add one ray into ray FIFO                
                     Input = input_data;                                                    
-                    fifo_full = 1;
+                    FIFOFull = 1;
                 end               
             end                                   
 
@@ -175,9 +171,9 @@ module ShadowUnit (
                     valid <= 0;
                     BU_Strobe <= 0;
                     BU_RestartStrobe <= 0;                                        
-                    if (fifo_full) begin                        
+                    if (FIFOFull) begin                        
                         CurrentInput = Input;                  
-                        fifo_full <= 0;
+                        FIFOFull <= 0;
 
                         AnyHitData.bHit <= 0;
                             
@@ -317,30 +313,24 @@ module PassOverShadowUnit (
     );
 
     ShadowState State, NextState = SHDWS_Init;     
-
     SurfaceOutputData Input, CurrentInput;
+    HitData HitData, AnyHitData;	       
+    logic FIFOFull = 1'b0;
+    
+    assign fifo_full = FIFOFull;
 
-    HitData HitData, AnyHitData;	        
-    
-    /*
-    initial begin	        
-        fifo_full <= 0;
-        NextState <= SHDWS_Init;
-	end	   
-    */
-    
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
-            fifo_full <= 0;
+            FIFOFull <= 0;
             NextState <= SHDWS_Init;
         end
         else begin           
             // If ray FIFO is not full
-            if (!fifo_full) begin        
+            if (!FIFOFull) begin        
                 if (add_input) begin
                     // Add one ray into ray FIFO                
                     Input = input_data;                                                    
-                    fifo_full = 1;
+                    FIFOFull = 1;
                 end               
             end                                   
 
@@ -348,9 +338,9 @@ module PassOverShadowUnit (
             case (State)
                 SHDWS_Init: begin    
                     valid <= 0;
-                    if (fifo_full) begin                        
+                    if (FIFOFull) begin                        
                         CurrentInput = Input;                  
-                        fifo_full <= 0;
+                        FIFOFull <= 0;
                         AnyHitData.bHit <= 0;                        
                         NextState <= SHDWS_Done;                        
                     end                    

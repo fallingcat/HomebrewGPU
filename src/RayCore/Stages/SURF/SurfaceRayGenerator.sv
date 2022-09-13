@@ -52,29 +52,24 @@ module SurfaceRayGenerator(
     SurfaceInputData RefInput;    
     
     Fixed3 InvDir;    
-	logic InvDir_Valid, InvDir_Strobe;          
+	logic InvDir_Valid, InvDir_Strobe;   
+    logic FIFOFull = 1'b0;        
 
-    /*
-    initial begin	        
-        fifo_full <= 0;
-        ref_fifo_full <= 0;  
-        NextState <= RGS_Init;
-	end	   
-    */
-    
+    assign fifo_full = FIFOFull;
+
 	always_ff @( posedge clk, negedge resetn) begin		                
 		if (!resetn) begin
-            fifo_full <= 0;
+            FIFOFull <= 0;
             ref_fifo_full <= 0;  
 			NextState <= RGS_Init;
 		end
 		else begin			                   
             if (add_input) begin
                 // If FIFO is not full       
-                if (!fifo_full) begin                                    
+                if (!FIFOFull) begin                                    
                     // Add one ray into FIFO                
                     Input = input_data;                                
-                    fifo_full = 1;
+                    FIFOFull = 1;
                 end               
             end        
 
@@ -105,9 +100,9 @@ module SurfaceRayGenerator(
                         InvDir_Strobe <= 1;
                         NextState <= RGS_Generate;                                                
                     end                                                                        
-                    else if (fifo_full) begin                        
+                    else if (FIFOFull) begin                        
                         out = Input;
-                        fifo_full <= 0;                            
+                        FIFOFull <= 0;                            
                         InvDir_Strobe <= 1;
                         NextState <= RGS_Generate;                                                
                     end                             

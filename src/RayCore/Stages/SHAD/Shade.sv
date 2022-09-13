@@ -538,24 +538,20 @@ module Shade(
     logic [15:0] TC[3];    
     logic [7:0] NumBounce;   
     Fixed3 ReflectionDir, RefractionDir;
+    logic FIFOFull = 1'b0;
     
-    /*
-    initial begin	        
-        fifo_full <= 0;
-        NextState <= SS_Init;
-	end	   
-    */
+    assign fifo_full = FIFOFull;
 
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
-            fifo_full <= 0;
+            FIFOFull <= 0;
             NextState <= SS_Init;
         end
         else begin
             if (add_input) begin
-                if (!fifo_full) begin                        
+                if (!FIFOFull) begin                        
                     Input = input_data;
-                    fifo_full = 1;                                            
+                    FIFOFull = 1;                                            
                 end               
             end                
 
@@ -565,9 +561,9 @@ module Shade(
                     valid <= 0;
                     ref_valid <= 0;
                     ColorDiv_Strobe <= 0;
-                    if (fifo_full) begin                        
+                    if (FIFOFull) begin                        
                         CurrentInput = Input;                  
-                        fifo_full <= 0;
+                        FIFOFull <= 0;
                         NextState <= SS_Combine;
                     end                                                            
                 end                
