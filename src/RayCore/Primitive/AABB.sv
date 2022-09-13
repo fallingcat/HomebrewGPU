@@ -207,38 +207,6 @@ module _AABBFindHit(
     _AABBFindHitT A0(min_t, max_t, ray_min_t, ray_max_t, hit_data.T, HitCondition);
 endmodule
 //-------------------------------------------------------------------
-// Find the the hit point. 
-//-------------------------------------------------------------------    
-module _AABBFindHitNormal(
-    input `PRIMITIVE_INDEX ray_vi,
-    input Fixed ray_min_t,
-    input Fixed ray_max_t,
-    input Fixed min_t,
-    input Fixed max_t,
-    input RGB8 color,
-    input `PRIMITIVE_INDEX pi,   
-    input SurfaceType st,
-    output HitData hit_data    
-    );   
-    logic HitCondition;
-
-    always_comb begin        
-        // If primitive is not null
-        if (pi[`PRIMITIVE_INDEX_WIDTH - 1] == 0 && ray_vi != pi && HitCondition) begin
-            hit_data.bHit <= 1;
-            hit_data.PI <= pi; 
-            hit_data.Color <= color;     
-            hit_data.SurfaceType <= st;                
-        end                
-        else begin
-            hit_data.bHit <= 0;             
-            hit_data.PI <= `NULL_PRIMITIVE_INDEX;                            
-        end
-    end
-
-    _AABBFindHitT A0(min_t, max_t, ray_min_t, ray_max_t, hit_data.T, HitCondition);
-endmodule
-//-------------------------------------------------------------------
 // 
 //-------------------------------------------------------------------    
 module AABBHit_NormalMux(
@@ -269,14 +237,8 @@ module _AABBHit_FindNormal(
     inout HitData hit_data    
     );   
 
-    logic B[6][2];   
+    logic B[6][2];       
     
-    //assign hit_data_out.bHit = hit_data.bHit;
-    //assign hit_data_out.T = hit_data.T;
-    //assign hit_data_out.Color = hit_data.Color;
-    //assign hit_data_out.PI = hit_data.PI;
-    //assign hit_data_out.SurfaceType = hit_data.SurfaceType;
-
     Fixed_Equal         X00(hit_data.T, t0[0], B[0][0]);
     Fixed_Greater       X01(dir.Dim[0], _Fixed(0), B[0][1]);
     Fixed_Equal         X10(hit_data.T, t1[0], B[1][0]);

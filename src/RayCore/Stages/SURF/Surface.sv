@@ -29,6 +29,99 @@
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
+module _Texturing (
+    input clk,    
+    input strobe,
+    input RGB8 color,
+    input Fixed3 pos,
+    input logic hit,
+    input logic `PRIMITIVE_INDEX pi,
+    output RGB8 out
+    );
+    logic [27:0] PX, PZ;
+
+    always_ff @(posedge clk) begin    
+        if (strobe) begin
+            out <= color;        
+            if (hit && pi == `BVH_MODEL_RAW_DATA_SIZE) begin
+                PX = pos.Dim[0].Value >> (`FIXED_FRAC_WIDTH + 4);
+                PZ = pos.Dim[2].Value >> (`FIXED_FRAC_WIDTH + 4);
+                if (PX[0] ^ PZ[0]) begin                                    
+                    out.Channel[0] <= color.Channel[0] >> 1;
+                    out.Channel[1] <= color.Channel[1] >> 1;
+                    out.Channel[2] <= color.Channel[2] >> 1;
+                end      
+            end                      
+        end        
+    end    
+endmodule
+//-------------------------------------------------------------------
+//
+//-------------------------------------------------------------------    
+module SetupClosestHitData ( 
+    input clk,    
+    input logic reset,    
+    input RGB8 color,           
+    input HitData hit_data,     
+    output HitData closest_hit_data     
+    );
+    logic IsClosestHit;
+
+    always_ff @(posedge clk) begin    
+        if (reset) begin
+            closest_hit_data.bHit <= 0;			
+            closest_hit_data.SurfaceType <= ST_None;
+            closest_hit_data.Color <= color;   
+            closest_hit_data.T.Value = `FIXED_MAX;
+        end
+        else begin            
+            if (hit_data.SurfaceType != ST_None && IsClosestHit) begin                
+                closest_hit_data = hit_data;
+            end                    
+        end        
+    end
+    
+    Fixed_Less A0(hit_data.T, closest_hit_data.T, IsClosestHit);    
+endmodule
+//-------------------------------------------------------------------
+//
+//-------------------------------------------------------------------    
+module SurfaceCombineOutput (      
+    input clk,
+    input strobe,  
+    input Fixed3 light_dir,  
+    input Fixed3 light_invdir,
+    input SurfaceInputData input_data,
+    input HitData hit_data,
+    output SurfaceOutputData out
+    );
+    always_ff @(posedge clk) begin
+        if (strobe) begin
+            out.LastColor <= input_data.LastColor;
+            out.BounceLevel <= input_data.BounceLevel;
+            out.ViewDir <= input_data.SurfaceRay.Dir;    
+            out.x <= input_data.x;
+            out.y <= input_data.y;                                             
+            out.PI <= hit_data.PI;
+            out.Normal <= hit_data.Normal;
+            out.SurfaceType <= hit_data.SurfaceType;
+            out.ShadowRay.Orig <= out.HitPos;
+            out.ShadowRay.Dir <= light_dir;                                
+            out.ShadowRay.InvDir <= light_invdir;                                
+            out.ShadowRay.MinT <= _Fixed(0);
+            out.ShadowRay.MaxT <= _Fixed(-1);                                                      
+            out.ShadowRay.PI <= hit_data.PI;            
+        end        
+    end
+endmodule
+
+
+
+
+
+//-------------------------------------------------------------------
+//
+//-------------------------------------------------------------------    
 module _SetupClosestHitData ( 
     input clk,    
     input reset,    
@@ -252,11 +345,11 @@ module SurfaceUnit (
                     PrimFIFOPush <= 1;                 
                     PrimFIFOPop <= 1;
 
-                    //NextState <= SURFS_WaitHitData;                    
+                    NextState <= SURFS_WaitHitData;                    
 
-                    if (BU_Finished && PrimitiveFIFOEmpty) begin                                          
-                        NextState <= SURFS_Done;
-                    end             
+                    //if (BU_Finished && PrimitiveFIFOEmpty) begin                                          
+                      //  NextState <= SURFS_Done;
+                    //end             
                 end               
 
                 (SURFS_WaitHitData): begin   
@@ -393,9 +486,10 @@ module SurfaceUnit (
     
     SurfaceState State, NextState = SURFS_Init;         
     SurfaceInputData Input, CurrentInput;
-    HitData ClosestHitData;	      
+    HitData HitData, ClosestHitData;	      
     Fixed3 ClosestHitPos;       
     logic ResetClosestHitData, HitDataValid;
+    Fixed3 D;
     
     // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
@@ -468,6 +562,8 @@ module SurfaceUnit (
     assign primitive_query.PrimType = CurrentPrimitiveType;
     assign primitive_query.StartIndex = StartPrimitiveIndex;
     assign primitive_query.EndIndex = EndPrimitiveIndex;
+
+    assign out.HitPos = ClosestHitPos;
     
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
@@ -592,6 +688,7 @@ module SurfaceUnit (
         .finished(BU_Finished)        
     );
 
+    /*
     // Find the closest hit from the all possible hit primitives 
     _ClosestHit FIND_CLOSEST_HIT(      
         .clk(clk),
@@ -605,7 +702,7 @@ module SurfaceUnit (
         .closest_hit_data(ClosestHitData),
         .hit_pos(ClosestHitPos)
     );
-  
+
     // Prepare the output data for next stage
     _SurfaceOutput SURF_OUT (      
         .clk(clk),
@@ -617,7 +714,56 @@ module SurfaceUnit (
         .hit_pos(ClosestHitPos),
         .out(out)
     );
+    */      
 
+    _ClosestHit FIND_CLOSEST_HIT(      
+        .clk(clk),
+        .resetn(resetn),    
+        .reset(ResetClosestHitData),
+        .strobe(State != SURFS_Done),
+        .r(CurrentInput.SurfaceRay), 		
+        .p(p),
+        .color(rs.ClearColor),                       
+        .valid(HitDataValid),
+        .closest_hit_data(ClosestHitData),
+        .hit_pos(ClosestHitPos)
+    );
+
+    /*
+    // Find out why it would have issue
+    _SurfaceOutput SURF_OUT (      
+        .clk(clk),
+        .strobe(State == SURFS_Done),
+        .light_dir(rs.Light[0].Dir),
+        .light_invdir(rs.Light[0].InvDir),
+        .input_data(CurrentInput),
+        .hit_data(ClosestHitData),
+        .hit_pos(ClosestHitPos),
+        .out(out)
+    );
+    */
+
+    // Prepare the output data for next stage
+    SurfaceCombineOutput CO (      
+        .clk(clk),
+        .strobe(NextState == SURFS_Done),
+        .light_dir(rs.Light[0].Dir),
+        .light_invdir(rs.Light[0].InvDir),
+        .input_data(CurrentInput),
+        .hit_data(ClosestHitData),
+        .out(out)
+    );
+    
+    // Texturing for this fragment if it is a fragment from ground primitive
+    _Texturing TX(
+        .clk(clk),
+        .strobe(NextState == SURFS_Done),
+        .color(ClosestHitData.Color),
+        .pos(ClosestHitPos),
+        .hit(ClosestHitData.SurfaceType != ST_None),
+        .pi(ClosestHitData.PI),
+        .out(out.Color)
+    );            
 endmodule
 
 `endif
