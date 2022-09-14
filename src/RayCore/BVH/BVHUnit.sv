@@ -209,7 +209,7 @@ module BVHUnit (
                 end
 
                 (BUS_ProcessNode): begin
-                `ifdef BVH_LEAF_AABB_TEST    
+                `ifdef IMPLEMENT_BVH_LEAF_AABB_TEST    
                     if (NodeVisible) begin    
                         if (node.Nodes[0][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
                             PushNode(node.Nodes[0]);                            
@@ -301,7 +301,7 @@ module BVHUnit (
         .hit(NodeVisible)
     );
     
-    `ifdef BVH_LEAF_AABB_TEST    
+    `ifdef IMPLEMENT_BVH_LEAF_AABB_TEST    
         AABBTest AABB_LEAF_TEST0(
             .r(r),            
             .aabb(leaf[0].Aabb),

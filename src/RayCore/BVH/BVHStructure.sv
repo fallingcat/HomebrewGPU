@@ -54,7 +54,7 @@ module _QueryBVHLeaf (
 
     always_comb begin
         if (valid) begin                    
-            `ifdef BVH_LEAF_AABB_TEST    
+            `ifdef IMPLEMENT_BVH_LEAF_AABB_TEST    
                 Aabb.Min.Dim[0].Value <= raw[231:200];
                 Aabb.Min.Dim[1].Value <= raw[199:168];
                 Aabb.Min.Dim[2].Value <= raw[167:136];
@@ -72,7 +72,7 @@ module _QueryBVHLeaf (
         end        
     end
 
-    `ifdef BVH_LEAF_AABB_TEST    
+    `ifdef IMPLEMENT_BVH_LEAF_AABB_TEST    
         OffsetAABB OFFSET_AABB(
             .offset(offset),
             .aabb(Aabb),

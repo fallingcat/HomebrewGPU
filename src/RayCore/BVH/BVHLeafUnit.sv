@@ -49,7 +49,7 @@ module BVHLeafUnit (
         else begin                                    
             LeafIndex = ~index;                
 
-            `ifdef BVH_LEAF_AABB_TEST    
+            `ifdef IMPLEMENT_BVH_LEAF_AABB_TEST    
                 Aabb.Min.Dim[0].Value <= LeafRawData[LeafIndex][231:200];
                 Aabb.Min.Dim[1].Value <= LeafRawData[LeafIndex][199:168];
                 Aabb.Min.Dim[2].Value <= LeafRawData[LeafIndex][167:136];
@@ -63,7 +63,7 @@ module BVHLeafUnit (
         end        
     end
 
-    `ifdef BVH_LEAF_AABB_TEST    
+    `ifdef IMPLEMENT_BVH_LEAF_AABB_TEST    
         OffsetAABB OFFSET_AABB(
             .offset(offset),
             .aabb(Aabb),

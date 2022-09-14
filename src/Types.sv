@@ -158,7 +158,6 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_NODE_RAW_DATA_SIZE              20
 `define BVH_LEAF_RAW_DATA_SIZE              20
 
-`define BVH_LEAF_AABB_TEST                  1
 `define BVH_NODE_INDEX_WIDTH                16
 `define BVH_PRIMITIVE_INDEX_WIDTH           32
 `define BVH_PRIMITIVE_AMOUNT_WIDTH          8
@@ -181,10 +180,11 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define MULTI_ISSUE                         1
 
 // Ray Core --------------------------------------------------------------
-//`define IMPLEMENT_SHADOWING                 1
-`define IMPLEMENT_REFLECTION                1
+`define IMPLEMENT_SHADOWING                 1
+//`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
 `define IMPLEMENT_BVH_TRAVERSAL             1
+`define IMPLEMENT_BVH_LEAF_AABB_TEST        1
 
 // `define DEBUG_CORE                          1
 `define RAY_CORE_SIZE_WIDTH                 0
