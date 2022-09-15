@@ -417,16 +417,30 @@ module PrimitiveUnit (
         // Box ---
         _SetupAABB(
             `BVH_GLOBAL_PRIMITIVE_START_IDX + 1,
-            _Fixed3(_Fixed(0), _Fixed(13), _Fixed(0)),
-            _Fixed(10),
+            _Fixed3(_Fixed(0), _Fixed(12), _Fixed(24)),
+            _Fixed(12),
             _RGB8(255, 255, 145)
         );
         _SetupAABB(
             `BVH_GLOBAL_PRIMITIVE_START_IDX + 2,
-            _Fixed3(_Fixed(0), _Fixed(20), _Fixed(60)),
-            _Fixed(20),
+            _Fixed3(_Fixed(-25), _Fixed(12), _Fixed(0)),
+            _Fixed(12),
+            _RGB8(255, 70, 85)
+        );
+        /*
+        _SetupAABB(
+            `BVH_GLOBAL_PRIMITIVE_START_IDX + 3,
+            _Fixed3(_Fixed(20), _Fixed(10), _Fixed(40)),
+            _Fixed(10),
             _RGB8(255, 100, 125)
         );                         
+        _SetupAABB(
+            `BVH_GLOBAL_PRIMITIVE_START_IDX + 4,
+            _Fixed3(_Fixed(-20), _Fixed(10), _Fixed(40)),
+            _Fixed(10),
+            _RGB8(255, 100, 125)
+        );                         
+        */
         
         // Global sphere 
         _SetupSphere(

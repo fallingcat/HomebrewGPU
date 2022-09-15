@@ -24,7 +24,7 @@
 `include "../../../Math/FixedNorm.sv"
 `include "../../../Math/FixedNorm3.sv"
 
-`define PRIMITIVE_FIFO
+//`define PRIMITIVE_FIFO
 
 //-------------------------------------------------------------------
 //
@@ -186,7 +186,7 @@ module SurfaceUnit (
     SurfaceInputData Input, CurrentInput;
     HitData ClosestHitData;	      
     Fixed3 ClosestHitPos;       
-    logic PrimitiveFIFOEmpty, ResetClosestHitData, PrimFIFOReset, PrimFIFOPush, PrimFIFOPop, HitDataValid;
+    logic PrimitiveFIFOEmpty, PrimFIFOReset, PrimFIFOPush, PrimFIFOPop, ResetClosestHitData = 1'b0, HitDataValid = 1'b0, FIFOFull = 1'b0;     
     
     // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
@@ -197,8 +197,7 @@ module SurfaceUnit (
     // which may have possible hit.
     PrimitiveGroupFIFO PrimitiveFIFO;	
     PrimitiveType CurrentPrimitiveType;
-	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;    
-    logic FIFOFull = 1'b0;
+	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;        
     
     //assign debug_data.LED[0] = (State == SURFS_Done);
 
@@ -343,7 +342,7 @@ module SurfaceUnit (
     // Find out why it would have issue
     _SurfaceOutput SURF_OUT (      
         .clk(clk),
-        .strobe(State == SURFS_Done),
+        .strobe(NextState == SURFS_Done),
         .light_dir(rs.Light[0].Dir),
         .light_invdir(rs.Light[0].InvDir),
         .input_data(CurrentInput),
@@ -393,10 +392,9 @@ module SurfaceUnit (
     SurfaceInputData Input, CurrentInput;
     HitData HitData, ClosestHitData;	      
     Fixed3 ClosestHitPos;       
-    logic ResetClosestHitData, HitDataValid;
-    Fixed3 D;
+    logic ResetClosestHitData = 1'b0, HitDataValid = 1'b0, FIFOFull = 1'b0; 
     
-    // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
+    // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.    
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] LeafStartPrim[2];
     logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] LeafNumPrim[2];       
@@ -405,8 +403,7 @@ module SurfaceUnit (
     // which may have possible hit.
     PrimitiveGroupFIFO PrimitiveFIFO;	
     PrimitiveType CurrentPrimitiveType;
-	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;    
-    logic FIFOFull = 1'b0; 
+	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;        
         
     //-------------------------------------------------------------------
     //
@@ -553,10 +550,6 @@ module SurfaceUnit (
                 end                        
                 
                 (SURFS_Done): begin
-                    StartPrimitiveIndex <= 0;
-                    EndPrimitiveIndex <= 0;             
-                    RealEndPrimitiveIndex <= 0;         
-
                     if (!output_fifo_full) begin
                         valid <= 1;          
                         BU_Strobe <= 0;
@@ -607,7 +600,7 @@ module SurfaceUnit (
     // Find out why it would have issue
     _SurfaceOutput SURF_OUT (      
         .clk(clk),
-        .strobe(State == SURFS_Done),
+        .strobe(NextState == SURFS_Done),
         .light_dir(rs.Light[0].Dir),
         .light_invdir(rs.Light[0].InvDir),
         .input_data(CurrentInput),

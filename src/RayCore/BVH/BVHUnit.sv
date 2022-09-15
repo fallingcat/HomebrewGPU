@@ -108,6 +108,93 @@ endmodule
 // Output the leaf primitive data when find visible leaf.
 // Output 0 primitives when there is no visible leaf.
 //-------------------------------------------------------------------    
+module NullBVHUnit (    
+    input clk,	    
+    input resetn, 
+
+    // controls...   
+    input strobe,    
+    input restart_strobe,
+
+    // inputs...    
+    input Fixed3 offset,
+    input Ray r,
+    //input logic [223:0] node_raw,    
+    input BVH_Node node,    
+    input BVH_Leaf leaf[2],    
+
+    // outputs...
+    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_prim[2],    
+    output logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] num_prim[2],    
+    output logic finished,
+    output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index
+    );
+
+    BVHUnitState State, NextState = BUS_Init;   
+
+    logic [`BVH_NODE_INDEX_WIDTH-1:0] NodeStack[`BVH_NODE_STACK_SIZE];
+    logic [`BVH_NODE_STACK_SIZE_WIDTH:0] NodeStackBottom;
+    logic [`BVH_NODE_INDEX_WIDTH-1:0] CurrentNodeIndex;    
+    
+    logic NodeVisible;        
+    logic ChildNodeVisible[2];   
+    
+    assign node_index = CurrentNodeIndex;
+
+    always @(posedge clk, negedge resetn) begin
+        if (!resetn) begin
+            NextState <= BUS_Init;
+        end
+        else begin
+            State = NextState;
+
+            case (State)
+                (BUS_Init): begin        
+                    start_prim[0] <= 0;
+                    start_prim[1] <= 0;
+                    num_prim[0] <= 0;
+                    num_prim[1] <= 0;
+                    finished <= 1;                
+                    if (strobe) begin 
+                        finished <= 0;
+                        NextState <= BUS_GetNode;                                    
+                    end
+                end       
+
+                (BUS_GetNode) : begin
+                    start_prim[0] <= 0;
+                    start_prim[1] <= 0;
+                    num_prim[0] <= 0;
+                    num_prim[0] <= `BVH_MODEL_RAW_DATA_SIZE;                    
+                    num_prim[1] <= 0; 
+                    finished <= 0; 
+                    NextState <= BUS_Done;                                    
+                end        
+                
+                (BUS_Done): begin      
+                    start_prim[0] <= 0;
+                    start_prim[1] <= 0; 
+                    num_prim[0] <= 0;
+                    num_prim[1] <= 0;  
+                    finished <= 1;
+                    if (restart_strobe) begin
+                        NextState <= BUS_Init;                    
+                    end                                
+                end
+
+                default: begin
+                    NextState <= BUS_Init;
+                end                        
+            endcase       
+        end                
+    end       	                            
+endmodule
+
+//-------------------------------------------------------------------
+// BVH traversal unit.
+// Output the leaf primitive data when find visible leaf.
+// Output 0 primitives when there is no visible leaf.
+//-------------------------------------------------------------------    
 module BVHUnit (    
     input clk,	    
     input resetn, 

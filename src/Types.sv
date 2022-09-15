@@ -540,7 +540,7 @@ typedef struct {
 typedef enum logic [3:0] {
     SHDWS_Init              = 4'd0,    
     SHDWS_AnyHit            = 4'd1, 
-    SHDWS_GenOutput         = 4'd2,
+    SHDWS_WaitNext          = 4'd2,     
     SHDWS_Done              = 4'd3
 } ShadowState;
 
