@@ -27,7 +27,8 @@
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module _DecodeBVHLeafIndex (   
+module _DecodeBVHLeafIndex (
+    input clk,
     input [`BVH_NODE_INDEX_WIDTH-1:0] index,         
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] leaf_index
     );
@@ -45,6 +46,7 @@ endmodule
 //
 //-------------------------------------------------------------------    
 module _QueryBVHLeaf (   
+    input clk,
     input [`BVH_LEAF_RAW_DATA_WIDTH-1:0] raw,
     input valid,
     input Fixed3 offset,
@@ -84,6 +86,7 @@ endmodule
 //
 //-------------------------------------------------------------------    
 module _QueryBVHNode (   
+    input clk,
     input [`BVH_NODE_RAW_DATA_WIDTH-1:0] node_raw,
     input Fixed3 offset,    
     output BVH_Node node

@@ -225,7 +225,6 @@ module SurfaceUnit (
                     BU_Strobe <= 0;
                     BU_RestartStrobe <= 0;  
 
-                    PrimFIFOPush <= 0;
                     PrimFIFOPop <= 0;
                     
                     if (FIFOFull) begin                        
@@ -247,18 +246,16 @@ module SurfaceUnit (
                     BU_Strobe <= 0;       
 
                     PrimFIFOReset <= 0;  
-                    PrimFIFOPush <= 1;                 
                     PrimFIFOPop <= 1;
 
-                    NextState <= SURFS_WaitHitData;                    
+                    //NextState <= SURFS_WaitHitData;                    
 
-                    //if (BU_Finished && PrimitiveFIFOEmpty) begin                                          
-                      //  NextState <= SURFS_Done;
-                    //end             
+                    if (BU_Finished && PrimitiveFIFOEmpty) begin                                          
+                        NextState <= SURFS_Done;
+                    end             
                 end               
 
                 (SURFS_WaitHitData): begin   
-                    PrimFIFOPush <= 1;                 
                     PrimFIFOPop <= 0;
 
                     if (BU_Finished && PrimitiveFIFOEmpty) begin                                          
@@ -270,13 +267,11 @@ module SurfaceUnit (
                 end                        
                 
                 (SURFS_Done): begin
+                    BU_Strobe <= 0;
+                    BU_RestartStrobe <= 1;    
                     if (!output_fifo_full) begin
-                        valid <= 1;          
-                        BU_Strobe <= 0;
-                        BU_RestartStrobe <= 1;    
-
+                        valid <= 1;       
                         PrimFIFOReset <= 0;  
-                        PrimFIFOPush <= 0;
                         PrimFIFOPop <= 0;
 
                         NextState <= SURFS_Init;            
@@ -306,6 +301,7 @@ module SurfaceUnit (
         .node(node),        
         .leaf(leaf),
 
+        .valid(BU_Valid),
         .finished(BU_Finished)        
     );
 
@@ -314,7 +310,7 @@ module SurfaceUnit (
         .resetn(resetn),
         .reset(PrimFIFOReset),
 
-        .push(PrimFIFOPush),
+        .push(BU_Valid),
         .prim_type(PT_AABB),
         .start_prim(LeafStartPrim),
         .num_prim(LeafNumPrim),
@@ -415,14 +411,16 @@ module SurfaceUnit (
     //
     //-------------------------------------------------------------------    
     function void QueuePrimitiveGroup;	
-        for (int i = 0; i < 2; i = i + 1) begin
-            if (LeafNumPrim[i] > 0) begin
-                PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_AABB;
-                PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = LeafStartPrim[i];
-                PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = LeafNumPrim[i];		    
-                PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
-            end            
-        end                        
+        if (BU_Valid) begin
+            for (int i = 0; i < 2; i = i + 1) begin
+                if (LeafNumPrim[i] > 0) begin
+                    PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_AABB;
+                    PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = LeafStartPrim[i];
+                    PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = LeafNumPrim[i];		    
+                    PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;                
+                end
+            end                        
+        end
 	endfunction
     //-------------------------------------------------------------------
     //
@@ -550,10 +548,10 @@ module SurfaceUnit (
                 end                        
                 
                 (SURFS_Done): begin
+                    BU_Strobe <= 0;
+                    BU_RestartStrobe <= 1;    
                     if (!output_fifo_full) begin
-                        valid <= 1;          
-                        BU_Strobe <= 0;
-                        BU_RestartStrobe <= 1;    
+                        valid <= 1;                                  
                         NextState <= SURFS_Init;            
                     end                    
                 end
@@ -581,6 +579,7 @@ module SurfaceUnit (
         .node(node),        
         .leaf(leaf),
 
+        .valid(BU_Valid),
         .finished(BU_Finished)        
     );    
 

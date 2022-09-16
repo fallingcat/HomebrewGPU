@@ -284,7 +284,7 @@ module _AABBFindTest(
 endmodule
 
 //-------------------------------------------------------------------
-// Find hit point and get the normal of hit point
+// Find hit point between MinT and MaxT, get the normal of hit point
 //-------------------------------------------------------------------    
 module AABBHit(
     input Ray r,
@@ -339,7 +339,7 @@ module AABBHit(
     );                      
 endmodule
 //-------------------------------------------------------------------
-// Find any hit
+// Test if a ray hit AABB between MinT and MaxT
 //-------------------------------------------------------------------    
 module AABBAnyHit(
     input Ray r,
@@ -383,7 +383,7 @@ module AABBAnyHit(
     );    
 endmodule
 //-------------------------------------------------------------------
-// Test if a ray hit AABB with infinite length
+// Test if a ray hit AABB between 0 and infinite
 //-------------------------------------------------------------------    
 module AABBTest(
     input Ray r,

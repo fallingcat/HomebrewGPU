@@ -108,7 +108,7 @@ endmodule
 // Output the leaf primitive data when find visible leaf.
 // Output 0 primitives when there is no visible leaf.
 //-------------------------------------------------------------------    
-module NullBVHUnit (    
+module DebugBVHUnit (    
     input clk,	    
     input resetn, 
 
@@ -124,6 +124,7 @@ module NullBVHUnit (
     input BVH_Leaf leaf[2],    
 
     // outputs...
+    output logic valid,
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_prim[2],    
     output logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] num_prim[2],    
     output logic finished,
@@ -138,22 +139,32 @@ module NullBVHUnit (
     
     logic NodeVisible;        
     logic ChildNodeVisible[2];   
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartIndex, NextStart = 0;
+    logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] NumPrim;
     
-    assign node_index = CurrentNodeIndex;
+    assign node_index       = CurrentNodeIndex;
+    assign start_prim[0]    = StartIndex;
+    assign num_prim[0]      = NumPrim;
+    assign start_prim[1]    = 0;    
+    assign num_prim[1]      = 0;
 
     always @(posedge clk, negedge resetn) begin
         if (!resetn) begin
             NextState <= BUS_Init;
         end
         else begin
+            if (restart_strobe) begin
+                NextState <= BUS_Init;                    
+            end                                
+
             State = NextState;
 
             case (State)
                 (BUS_Init): begin        
-                    start_prim[0] <= 0;
-                    start_prim[1] <= 0;
-                    num_prim[0] <= 0;
-                    num_prim[1] <= 0;
+                    StartIndex = 0;
+                    NextStart = 0;
+                    NumPrim = 0;                    
+                    valid <= 0;
                     finished <= 1;                
                     if (strobe) begin 
                         finished <= 0;
@@ -161,25 +172,31 @@ module NullBVHUnit (
                     end
                 end       
 
-                (BUS_GetNode) : begin
-                    start_prim[0] <= 0;
-                    start_prim[1] <= 0;
-                    num_prim[0] <= 0;
-                    num_prim[0] <= `BVH_MODEL_RAW_DATA_SIZE;                    
-                    num_prim[1] <= 0; 
-                    finished <= 0; 
-                    NextState <= BUS_Done;                                    
+                (BUS_GetNode) : begin      
+                    StartIndex = NextStart;    
+                    if (StartIndex >=`BVH_MODEL_RAW_DATA_SIZE) begin
+                        finished <= 1;         
+                        valid <= 0;               
+                        NextState <= BUS_Done;                                    
+                    end
+                    else begin
+                        NumPrim = StartIndex + 6;
+                        if ((StartIndex + NumPrim) >= `BVH_MODEL_RAW_DATA_SIZE) begin
+                            NumPrim = `BVH_MODEL_RAW_DATA_SIZE - StartIndex;
+                        end
+                        NextStart = StartIndex + 6;                                            
+                        finished <= 0; 
+                        valid <= 1;
+                    end                   
                 end        
                 
                 (BUS_Done): begin      
-                    start_prim[0] <= 0;
-                    start_prim[1] <= 0; 
-                    num_prim[0] <= 0;
-                    num_prim[1] <= 0;  
+                    StartIndex = 0;
+                    NextStart = 0;
+                    NumPrim = 0;
+
                     finished <= 1;
-                    if (restart_strobe) begin
-                        NextState <= BUS_Init;                    
-                    end                                
+                    valid <= 0;
                 end
 
                 default: begin
@@ -211,6 +228,7 @@ module BVHUnit (
     input BVH_Leaf leaf[2],    
 
     // outputs...
+    output logic valid,
     output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_prim[2],    
     output logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] num_prim[2],    
     output logic finished,
@@ -255,6 +273,10 @@ module BVHUnit (
             NextState <= BUS_Init;
         end
         else begin
+            if (restart_strobe) begin
+                NextState <= BUS_Init;                    
+            end                                
+
             State = NextState;
 
             case (State)
@@ -263,6 +285,7 @@ module BVHUnit (
                     num_prim[0] <= 0;
                     start_prim[1] <= `NULL_PRIMITIVE_INDEX;                    
                     num_prim[1] <= 0;
+                    valid <= 0;
                     finished <= 1;                
                     if (strobe) begin 
                         finished <= 0;
@@ -273,14 +296,15 @@ module BVHUnit (
                 end               
                 
                 (BUS_GetNode) : begin
-                    start_prim[0] <= `NULL_PRIMITIVE_INDEX;
-                    num_prim[0] <= 0;
-                    start_prim[1] <= `NULL_PRIMITIVE_INDEX;                    
-                    num_prim[1] <= 0; 
+                    //start_prim[0] <= `NULL_PRIMITIVE_INDEX;
+                    //num_prim[0] <= 0;
+                    //start_prim[1] <= `NULL_PRIMITIVE_INDEX;                    
+                    //num_prim[1] <= 0; 
+                    valid <= 0;
                     finished <= 0; 
 
                     if (restart_strobe) begin
-                        finished <= 1;
+                        finished <= 1;                        
                         NextState <= BUS_Init;                    
                     end        
                     else begin
@@ -288,7 +312,7 @@ module BVHUnit (
                             PopNode();    
                             NextState <= BUS_ProcessNode;                    
                         end
-                        else begin          
+                        else begin                                      
                             finished <= 1;                  
                             NextState <= BUS_Done;
                         end                                         
@@ -298,35 +322,38 @@ module BVHUnit (
                 (BUS_ProcessNode): begin
                 `ifdef IMPLEMENT_BVH_LEAF_AABB_TEST    
                     if (NodeVisible) begin    
+                        valid <= 0;                      
                         if (node.Nodes[0][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
                             PushNode(node.Nodes[0]);                            
                             start_prim[0] <= `NULL_PRIMITIVE_INDEX;
-                            num_prim[0] <= 0;                                
+                            num_prim[0] <= 0;                                      
                         end 
                         else begin
                             if (ChildNodeVisible[0]) begin                            
                                 start_prim[0] <= leaf[0].StartPrimitive;
                                 num_prim[0] <= leaf[0].NumPrimitives;
+                                valid <= 1;
                             end
                             else begin
                                 start_prim[0] <= `NULL_PRIMITIVE_INDEX;
-                                num_prim[0] <= 0;    
+                                num_prim[0] <= 0;                                    
                             end                            
                         end
 
                         if (node.Nodes[1][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
                             PushNode(node.Nodes[1]);
                             start_prim[1] <= `NULL_PRIMITIVE_INDEX;
-                            num_prim[1] <= 0;                                
+                            num_prim[1] <= 0;                                                            
                         end 
                         else begin
                             if (ChildNodeVisible[1]) begin                            
                                 start_prim[1] <= leaf[1].StartPrimitive;
-                                num_prim[1] <= leaf[1].NumPrimitives;
+                                num_prim[1] <= leaf[1].NumPrimitives;                                
+                                valid <= 1;
                             end
                             else begin
                                 start_prim[1] <= `NULL_PRIMITIVE_INDEX;
-                                num_prim[1] <= 0;    
+                                num_prim[1] <= 0;                                    
                             end                            
                         end
                     end    
@@ -335,6 +362,7 @@ module BVHUnit (
                         num_prim[0] <= 0;                                                                            
                         start_prim[1] <= `NULL_PRIMITIVE_INDEX;
                         num_prim[1] <= 0;
+                        valid <= 0;
                     end              
                 `else
                     if (NodeVisible) begin       
@@ -349,12 +377,14 @@ module BVHUnit (
                         num_prim[0] <= leaf[0].NumPrimitives;
                         start_prim[1] <= leaf[1].StartPrimitive;
                         num_prim[1] <= leaf[1].NumPrimitives;
+                        valid <= 1;
                     end    
                     else begin
                         start_prim[0] <= `NULL_PRIMITIVE_INDEX;
                         num_prim[0] <= 0;                                                                            
                         start_prim[1] <= `NULL_PRIMITIVE_INDEX;
                         num_prim[1] <= 0;
+                        valid <= 0;
                     end     
                 `endif
                     NextState <= BUS_GetNode;
@@ -365,10 +395,8 @@ module BVHUnit (
                     num_prim[0] <= 0;
                     start_prim[1] <= `NULL_PRIMITIVE_INDEX;                     
                     num_prim[1] <= 0;  
-                    finished <= 1;
-                    if (restart_strobe) begin
-                        NextState <= BUS_Init;                    
-                    end                                
+                    valid <= 0;
+                    finished <= 1;                    
                 end
 
                 default: begin
@@ -407,6 +435,10 @@ module BVHUnit (
             NextState <= BUS_Init;
         end
         else begin
+            if (restart_strobe) begin
+                NextState <= BUS_Init;                    
+            end                                
+
             State = NextState;
 
             case (State)
@@ -415,6 +447,7 @@ module BVHUnit (
                     start_prim[1] <= 0;
                     num_prim[0] <= 0;
                     num_prim[1] <= 0;
+                    valid <= 0;
                     finished <= 1;                
                     if (strobe) begin 
                         finished <= 0;
@@ -429,6 +462,7 @@ module BVHUnit (
                     num_prim[0] <= `BVH_MODEL_RAW_DATA_SIZE;                    
                     num_prim[1] <= 0; 
                     finished <= 0; 
+                    valid <= 1;
                     NextState <= BUS_Done;                                    
                 end        
                 
@@ -438,9 +472,7 @@ module BVHUnit (
                     num_prim[0] <= 0;
                     num_prim[1] <= 0;  
                     finished <= 1;
-                    if (restart_strobe) begin
-                        NextState <= BUS_Init;                    
-                    end                                
+                    valid <= 0;                    
                 end
 
                 default: begin
