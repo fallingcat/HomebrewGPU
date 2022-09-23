@@ -281,9 +281,9 @@ module BVHUnit (
 
             case (State)
                 (BUS_Init): begin        
-                    start_prim[0] <= `NULL_PRIMITIVE_INDEX;
+                    start_prim[0] <= `BVH_NULL_PRIMITIVE_INDEX;
                     num_prim[0] <= 0;
-                    start_prim[1] <= `NULL_PRIMITIVE_INDEX;                    
+                    start_prim[1] <= `BVH_NULL_PRIMITIVE_INDEX;                    
                     num_prim[1] <= 0;
                     valid <= 0;
                     finished <= 1;                
@@ -296,9 +296,9 @@ module BVHUnit (
                 end               
                 
                 (BUS_GetNode) : begin
-                    //start_prim[0] <= `NULL_PRIMITIVE_INDEX;
+                    //start_prim[0] <= `BVH_NULL_PRIMITIVE_INDEX;
                     //num_prim[0] <= 0;
-                    //start_prim[1] <= `NULL_PRIMITIVE_INDEX;                    
+                    //start_prim[1] <= `BVH_NULL_PRIMITIVE_INDEX;                    
                     //num_prim[1] <= 0; 
                     valid <= 0;
                     finished <= 0; 
@@ -325,7 +325,7 @@ module BVHUnit (
                         valid <= 0;                      
                         if (node.Nodes[0][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
                             PushNode(node.Nodes[0]);                            
-                            start_prim[0] <= `NULL_PRIMITIVE_INDEX;
+                            start_prim[0] <= `BVH_NULL_PRIMITIVE_INDEX;
                             num_prim[0] <= 0;                                      
                         end 
                         else begin
@@ -335,14 +335,14 @@ module BVHUnit (
                                 valid <= 1;
                             end
                             else begin
-                                start_prim[0] <= `NULL_PRIMITIVE_INDEX;
+                                start_prim[0] <= `BVH_NULL_PRIMITIVE_INDEX;
                                 num_prim[0] <= 0;                                    
                             end                            
                         end
 
                         if (node.Nodes[1][`BVH_NODE_INDEX_WIDTH-1] == 0) begin
                             PushNode(node.Nodes[1]);
-                            start_prim[1] <= `NULL_PRIMITIVE_INDEX;
+                            start_prim[1] <= `BVH_NULL_PRIMITIVE_INDEX;
                             num_prim[1] <= 0;                                                            
                         end 
                         else begin
@@ -352,15 +352,15 @@ module BVHUnit (
                                 valid <= 1;
                             end
                             else begin
-                                start_prim[1] <= `NULL_PRIMITIVE_INDEX;
+                                start_prim[1] <= `BVH_NULL_PRIMITIVE_INDEX;
                                 num_prim[1] <= 0;                                    
                             end                            
                         end
                     end    
                     else begin
-                        start_prim[0] <= `NULL_PRIMITIVE_INDEX;
+                        start_prim[0] <= `BVH_NULL_PRIMITIVE_INDEX;
                         num_prim[0] <= 0;                                                                            
-                        start_prim[1] <= `NULL_PRIMITIVE_INDEX;
+                        start_prim[1] <= `BVH_NULL_PRIMITIVE_INDEX;
                         num_prim[1] <= 0;
                         valid <= 0;
                     end              
@@ -380,9 +380,9 @@ module BVHUnit (
                         valid <= 1;
                     end    
                     else begin
-                        start_prim[0] <= `NULL_PRIMITIVE_INDEX;
+                        start_prim[0] <= `BVH_NULL_PRIMITIVE_INDEX;
                         num_prim[0] <= 0;                                                                            
-                        start_prim[1] <= `NULL_PRIMITIVE_INDEX;
+                        start_prim[1] <= `BVH_NULL_PRIMITIVE_INDEX;
                         num_prim[1] <= 0;
                         valid <= 0;
                     end     
@@ -391,18 +391,18 @@ module BVHUnit (
                 end                
                 
                 (BUS_Done): begin      
-                    start_prim[0] <= `NULL_PRIMITIVE_INDEX;
+                    start_prim[0] <= `BVH_NULL_PRIMITIVE_INDEX;
                     num_prim[0] <= 0;
-                    start_prim[1] <= `NULL_PRIMITIVE_INDEX;                     
+                    start_prim[1] <= `BVH_NULL_PRIMITIVE_INDEX;                     
                     num_prim[1] <= 0;  
                     valid <= 0;
                     finished <= 1;                    
                 end
 
                 default: begin
-                    start_prim[0] <= `NULL_PRIMITIVE_INDEX;
+                    start_prim[0] <= `BVH_NULL_PRIMITIVE_INDEX;
                     num_prim[0] <= 0;
-                    start_prim[1] <= `NULL_PRIMITIVE_INDEX;                     
+                    start_prim[1] <= `BVH_NULL_PRIMITIVE_INDEX;                     
                     num_prim[1] <= 0;  
                     NextState <= BUS_Init;
                 end                        

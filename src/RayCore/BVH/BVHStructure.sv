@@ -148,10 +148,10 @@ module BVHStructure (
     //input PrimitiveType prim_type_1,
     //input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_index_1,    
     //input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_bound_1,
-    //output BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
-    //output BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE]    
-    //output BVH_Primitive_Sphere ps0[`SPHERE_TEST_UNIT_SIZE],
-    //output BVH_Primitive_Sphere ps1[`SPHERE_TEST_UNIT_SIZE]    
+    //output Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
+    //output Primitive_AABB p1[`AABB_TEST_UNIT_SIZE]    
+    //output Primitive_Sphere ps0[`SPHERE_TEST_UNIT_SIZE],
+    //output Primitive_Sphere ps1[`SPHERE_TEST_UNIT_SIZE]    
     );
 
     logic SDReadDataValid;

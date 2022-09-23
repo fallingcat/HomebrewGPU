@@ -66,6 +66,11 @@
 `define PRIMITIVE_INDEX_WIDTH		        16
 `define PRIMITIVE_INDEX				        [`PRIMITIVE_INDEX_WIDTH-1:0]
 `define NULL_PRIMITIVE_INDEX                {`PRIMITIVE_INDEX_WIDTH{1'b1}}
+function automatic IsValidPrimitiveIndex(input `PRIMITIVE_INDEX i);
+    begin
+        IsValidPrimitiveIndex = (i[`PRIMITIVE_INDEX_WIDTH-1] == 0);
+    end    
+endfunction
 
 // DDR2 with 27bits address == 256MB
 `define FRAMEBUFFER_ADDR_0                  27'h000_0000 //FB0 (320x240x32b) 0x00000 ~ 0x26000
@@ -160,7 +165,15 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 
 `define BVH_NODE_INDEX_WIDTH                16
 `define BVH_PRIMITIVE_INDEX_WIDTH           32
+`define BVH_PRIMITIVE_INDEX			        [`BVH_PRIMITIVE_INDEX_WIDTH-1:0]
 `define BVH_PRIMITIVE_AMOUNT_WIDTH          8
+`define BVH_NULL_PRIMITIVE_INDEX            {`BVH_PRIMITIVE_INDEX_WIDTH{1'b1}}
+function automatic IsValidBVHPrimitiveIndex(input `BVH_PRIMITIVE_INDEX i);
+    begin
+        IsValidBVHPrimitiveIndex = (i[`BVH_PRIMITIVE_INDEX_WIDTH-1] == 0);
+    end    
+endfunction
+
 
 `define BVH_NODE_STACK_SIZE_WIDTH            6
 `define BVH_NODE_STACK_SIZE                  2**`BVH_NODE_STACK_SIZE_WIDTH
@@ -181,7 +194,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 
 // Ray Core --------------------------------------------------------------
 `define IMPLEMENT_SHADOWING                 1
-`define IMPLEMENT_REFLECTION                1
+//`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
 `define IMPLEMENT_BVH_TRAVERSAL             1
 `define IMPLEMENT_BVH_LEAF_AABB_TEST        1
@@ -195,6 +208,9 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 
 `define SPHERE_TEST_UNIT_SIZE_WIDTH         0
 `define SPHERE_TEST_UNIT_SIZE               2**`SPHERE_TEST_UNIT_SIZE_WIDTH
+
+`define TRIANGLE_TEST_UNIT_SIZE_WIDTH       0
+`define TRIANGLE_TEST_UNIT_SIZE             2**`TRIANGLE_TEST_UNIT_SIZE_WIDTH
 
 
 // Ray tracing level -----------------------------------------------------
@@ -401,8 +417,9 @@ typedef struct {
 typedef enum logic [1:0] {
     PT_AABB                 = 2'd0,
     PT_Sphere               = 2'd1,
-    ST_Triangle             = 2'd2     
+    ST_Triangle             = 2'd2    
 } PrimitiveType;
+`define NUM_PRIMITIVE_TYPES             3
 
 typedef enum logic [1:0] {
     ST_None                 = 2'd0,
@@ -442,21 +459,21 @@ typedef struct {
     RGB8 Color;      
     logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
-} BVH_Primitive_AABB;
+} Primitive_AABB;
 
 typedef struct {
     Sphere Sphere;      
     RGB8 Color;      
     logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
-} BVH_Primitive_Sphere;
+} Primitive_Sphere;
 
 typedef struct {
     Triangle Triangle;      
     RGB8 Color;      
     logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
-} BVH_Primitive_Triangle;
+} Primitive_Triangle;
 
 typedef struct {
     PrimitiveType PrimType;
@@ -465,7 +482,6 @@ typedef struct {
 } PrimitiveGroup;
 
 typedef struct {
-    PrimitiveType PrimType;
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartIndex;
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] EndIndex;
 } PrimitiveQueryData;
@@ -474,11 +490,16 @@ typedef struct {
     PrimitiveGroup Groups[16];
     logic [3:0] Top;
     logic [3:0] Bottom;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] EndPrimitiveIndex;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] RealEndPrimitiveIndex;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] AlignedNumPrimitives;
 } PrimitiveGroupFIFO;
 
 typedef enum logic [3:0] {
-    PFS_Init              = 4'd0,    
-    PFS_Working           = 4'd1
+    PFS_Init                = 4'd0,    
+    PFS_Working             = 4'd1,
+    PFS_Done                = 4'd2
 } PrimitiveFIFOState;
 
 // Ray Core >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

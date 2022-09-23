@@ -47,10 +47,10 @@ module SimpleRendererTest;
 	ShadeOutputData ShadeOut[`RAY_CORE_SIZE];    	 
 
 	PrimitiveQueryData PrimitiveQuery0[`RAY_CORE_SIZE];
-	BVH_Primitive_AABB P0[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    	
+	Primitive_AABB P0[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    	
 
 	PrimitiveQueryData PrimitiveQuery1[`RAY_CORE_SIZE];
-	BVH_Primitive_AABB P1[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    	
+	Primitive_AABB P1[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    	
 
 	logic [`BVH_NODE_INDEX_WIDTH-1:0] BVHNodeIndex0[`RAY_CORE_SIZE], BVHNodeIndex1[`RAY_CORE_SIZE];
 	BVH_Node BVHNode0[`RAY_CORE_SIZE], BVHNode1[`RAY_CORE_SIZE];

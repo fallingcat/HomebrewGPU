@@ -291,7 +291,8 @@ module AABBHit(
     input AABB aabb,
     input RGB8 color,
     input `PRIMITIVE_INDEX pi,  
-    input SurfaceType st,      
+    input SurfaceType st,    
+    output logic valid,  
     output HitData hit_data    
     );    
 
@@ -302,6 +303,7 @@ module AABBHit(
     wire HitData HitData;
     
     assign hit_data = HitData;
+    assign valid = 1;
 
     _AABBFindT0T1 FIND_T0T1(
         .orig(r.Orig),

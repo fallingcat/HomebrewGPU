@@ -226,13 +226,6 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/src/RayCore/Primitive/PrimitiveFIFO.sv">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PPRDIR/src/RayCore/Primitive/PrimitiveUnit.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -289,6 +282,13 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/src/RayCore/Primitive/Sphere.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/src/RayCore/Stages/SURF/Surface.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -324,7 +324,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/src/RayCore/DebugCore.sv">
+      <File Path="$PPRDIR/src/RayCore/Primitive/PrimitiveFIFO.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -332,7 +332,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/src/RayCore/Primitive/Sphere.sv">
+      <File Path="$PPRDIR/src/RayCore/DebugCore.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>

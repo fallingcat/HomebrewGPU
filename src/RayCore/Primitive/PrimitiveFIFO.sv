@@ -36,7 +36,6 @@ module PrimitiveFIFO (
     input reset,  
 
     input push,
-    input PrimitiveType prim_type,
     input logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_prim[2],    
     input logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] num_prim[2],       
 
@@ -47,29 +46,30 @@ module PrimitiveFIFO (
     output logic empty
     );       
     
+    PrimitiveFIFOState State, NextState = PFS_Done;
     // Store the primitive groups data. Each group present a range of primitives
     // which may have possible hit.
     PrimitiveGroupFIFO PrimitiveFIFO;	
     PrimitiveType CurrentPrimitiveType;
 	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;            
     
-    assign primitive_query.PrimType = CurrentPrimitiveType;
     assign primitive_query.StartIndex = StartPrimitiveIndex;
     assign primitive_query.EndIndex = EndPrimitiveIndex;
-    assign empty = ((PrimitiveFIFO.Top == PrimitiveFIFO.Bottom) && (StartPrimitiveIndex >= EndPrimitiveIndex));
+    //assign empty = ((PrimitiveFIFO.Top == PrimitiveFIFO.Bottom) && (StartPrimitiveIndex >= EndPrimitiveIndex));
 
     //assign debug_data.Number[0] = EndPrimitiveIndex;
-    //assign debug_data.Number[1] = StartPrimitiveIndex;
-    //assign debug_data.LED[1] = !empty;
-    //assign debug_data.LED[2] = reset;    
-    //assign debug_data.LED[3] = push;
+    assign debug_data.Number[1] = StartPrimitiveIndex;
+
+    assign debug_data.LED[0] = !empty;
+    assign debug_data.LED[1] = reset;    
+    assign debug_data.LED[2] = (State == PFS_Working);
     //assign debug_data.LED[4] = pop;
 
 
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function void QueueGlobalPrimitives();
+    function void _QueueGlobalPrimitives();
         /*
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_Sphere;
         PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = 0;
@@ -85,10 +85,9 @@ module PrimitiveFIFO (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-    function void QueuePrimitiveGroup;	
+    function void _QueuePrimitiveGroup;	
         for (int i = 0; i < 2; i = i + 1) begin
             if (num_prim[i] > 0) begin
-                PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = prim_type;
                 PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = start_prim[i];
                 PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = num_prim[i];		    
                 PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
@@ -98,9 +97,8 @@ module PrimitiveFIFO (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-	function void DequeuePrimitiveGroup;		
-        CurrentPrimitiveType = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].PrimType; 
-		StartPrimitiveIndex = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].StartPrimitive;                
+	function void _DequeuePrimitiveGroup;		
+        StartPrimitiveIndex = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].StartPrimitive;                
         AlignedNumPrimitives = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].NumPrimitives;
         RealEndPrimitiveIndex = StartPrimitiveIndex + AlignedNumPrimitives;
 
@@ -116,50 +114,90 @@ module PrimitiveFIFO (
     //-------------------------------------------------------------------
     //
     //-------------------------------------------------------------------    
-	function void NextPrimitiveData;
+	function void _NextPrimitiveData;
         StartPrimitiveIndex = StartPrimitiveIndex + `AABB_TEST_UNIT_SIZE;       
 	endfunction    
-    //-------------------------------------------------------------------
-    //
-    //-------------------------------------------------------------------       
     
+    initial begin
+        PrimitiveFIFO.Top = 0;
+        PrimitiveFIFO.Bottom = 0;
+        _QueueGlobalPrimitives();
+    end
+
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
-            StartPrimitiveIndex = 0;
-            EndPrimitiveIndex = 0;                             
-            RealEndPrimitiveIndex = 0;         
+            StartPrimitiveIndex <= 0;
+            EndPrimitiveIndex <= 0;                             
+            RealEndPrimitiveIndex <= 0;         
 
-            PrimitiveFIFO.Top = 0;			
-            PrimitiveFIFO.Bottom = 0;	
+            PrimitiveFIFO.Top <= 0;			
+            PrimitiveFIFO.Bottom <= 0;	
+
+            NextState = PFS_Done;
+
+            empty <= 0;
         end
-        else begin                          
-            if (reset) begin                
+        else begin      
+            if (reset) begin   
                 StartPrimitiveIndex = 0;
-                EndPrimitiveIndex = 0;                             
+                EndPrimitiveIndex = 0;         
                 RealEndPrimitiveIndex = 0;         
 
                 PrimitiveFIFO.Top = 0;			
-                PrimitiveFIFO.Bottom = 0;			                        
-                QueueGlobalPrimitives();
-            end
-            else begin
-                if (push) begin
-                    QueuePrimitiveGroup();
+                PrimitiveFIFO.Bottom = 0;
+
+                _QueueGlobalPrimitives();                        
+                NextState = PFS_Working;
+            end     
+
+            if (push) begin
+                _QueuePrimitiveGroup();
+            end            
+
+            State = NextState;
+            case (State)
+                (PFS_Init): begin
+                    empty <= 0;                                    
+                    NextState <= PFS_Working;                    
                 end
 
-                if (pop) begin
-                    // If there are no primitives need to be processed
-                    if (StartPrimitiveIndex >= EndPrimitiveIndex) begin	                        		                             
-                        if (PrimitiveFIFO.Top != PrimitiveFIFO.Bottom) begin
-                            // Dequeue possible hit primitives for closest hit test.
-                            DequeuePrimitiveGroup();                                    
-                        end                          
+                (PFS_Working): begin
+                    empty <= 0;
+                    
+                    if (pop) begin
+                        // If there are no primitives need to be processed
+                        if (StartPrimitiveIndex >= EndPrimitiveIndex) begin	                        		                             
+                            if (PrimitiveFIFO.Top != PrimitiveFIFO.Bottom) begin
+                                // Dequeue possible hit primitives for closest hit test.
+                                _DequeuePrimitiveGroup();                                    
+                            end
+                            else begin
+                                empty <= 1;
+
+                                StartPrimitiveIndex = 0;
+                                EndPrimitiveIndex = 0;                             
+                                RealEndPrimitiveIndex = 0;         
+
+                                NextState <= PFS_Done;
+                            end                          
+                        end
+                        else begin
+                            _NextPrimitiveData();                                                                                
+                        end                           
                     end
-                    else begin
-                        NextPrimitiveData();                                                                                
-                    end            
-                end            
-            end
+                end
+
+                (PFS_Done): begin
+                    empty <= 1;                    
+
+                    StartPrimitiveIndex = 0;
+                    EndPrimitiveIndex = 0;                             
+                    RealEndPrimitiveIndex = 0;        
+
+                    PrimitiveFIFO.Top = 0;			
+                    PrimitiveFIFO.Bottom = 0;			                                                                  
+                end
+            endcase          
         end        
     end         
 endmodule

@@ -70,13 +70,17 @@ module Renderer(
     logic RC_Valid[`RAY_CORE_SIZE], RC_FIFOFull[`RAY_CORE_SIZE];	
 	ShadeOutputData ShadeOut[`RAY_CORE_SIZE];    	 
 
-	PrimitiveQueryData PrimitiveQuery0[`RAY_CORE_SIZE];
-	BVH_Primitive_AABB P0[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    
-	BVH_Primitive_Sphere PS0[`RAY_CORE_SIZE][`SPHERE_TEST_UNIT_SIZE];    
+	PrimitiveQueryData AABB_Query_0[`RAY_CORE_SIZE];
+	Primitive_AABB AABB_0[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    	
 
-	PrimitiveQueryData PrimitiveQuery1[`RAY_CORE_SIZE];
-	BVH_Primitive_AABB P1[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    
-	BVH_Primitive_Sphere PS1[`RAY_CORE_SIZE][`SPHERE_TEST_UNIT_SIZE];    
+	PrimitiveQueryData AABB_Query_1[`RAY_CORE_SIZE];
+	Primitive_AABB AABB_1[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    
+
+	PrimitiveQueryData Sphere_Query_0[`RAY_CORE_SIZE];
+	Primitive_Sphere Sphere_0[`RAY_CORE_SIZE][`SPHERE_TEST_UNIT_SIZE];    
+
+	PrimitiveQueryData Sphere_Query_1[`RAY_CORE_SIZE];
+	Primitive_Sphere Sphere_1[`RAY_CORE_SIZE][`SPHERE_TEST_UNIT_SIZE];    
 
 	logic [`BVH_NODE_INDEX_WIDTH-1:0] BVHNodeIndex0[`RAY_CORE_SIZE], BVHNodeIndex1[`RAY_CORE_SIZE];
 	BVH_Node BVHNode0[`RAY_CORE_SIZE], BVHNode1[`RAY_CORE_SIZE];
@@ -213,15 +217,6 @@ module Renderer(
                     x <= 0;
                     y <= 0; 		
 
-                    //x = 30;
-                    //y = 0; 		
-
-					//x = 160;
-                    //y = 120; 		
-
-					//x <= 317;
-                    //y <= 239; 					
-					
 					TG_Strobe <= 0;
 					TG_Reset <= 1;	
 					RS_Strobe <= 1;
@@ -354,13 +349,17 @@ module Renderer(
 
 		.offset(RenderState.PositionOffset),
 
-		.primitive_query_0(PrimitiveQuery0),
-		.p0(P0),
-		.ps0(PS0),
+		.aabb_query_0(AABB_Query_0),
+		.aabb_0(AABB_0),		
 
-		.primitive_query_1(PrimitiveQuery1),		
-		.p1(P1),   
-		.ps1(PS1)  
+		.aabb_query_1(AABB_Query_1),		
+		.aabb_1(AABB_1),
+
+		.sphere_query_0(Sphere_Query_0),		
+		.sphere_0(Sphere_0),   
+
+		.sphere_query_1(Sphere_Query_1),		
+		.sphere_1(Sphere_1)  
 	);			
 
 	generate
@@ -390,11 +389,17 @@ module Renderer(
 				.node_1(BVHNode1[i]),						
 				.leaf_1(BVHLeaf1[i]),
 
-				.primitive_query_0(PrimitiveQuery0[i]),
-				.p0(P0[i]),
+				.aabb_query_0(AABB_Query_0[i]),
+				.aabb_0(AABB_0[i]),
 
-				.primitive_query_1(PrimitiveQuery1[i]),				
-				.p1(P1[i])
+				.aabb_query_1(AABB_Query_1[i]),				
+				.aabb_1(AABB_1[i]),
+
+				.sphere_query_0(Sphere_Query_0[i]),
+				.sphere_0(Sphere_0[i]),
+
+				.sphere_query_1(Sphere_Query_1[i]),				
+				.sphere_1(Sphere_1[i])
 			);                			
         end
     endgenerate  

@@ -60,8 +60,10 @@ module RayCore(
     input SurfaceInputData input_data,        
     input RenderState rs,
     input reset_pixel_counter,
-    input BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
-    input BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB aabb_0[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB aabb_1[`AABB_TEST_UNIT_SIZE],
+    input Primitive_Sphere sphere_0[`SPHERE_TEST_UNIT_SIZE],
+    input Primitive_Sphere sphere_1[`SPHERE_TEST_UNIT_SIZE],
     input BVH_Node node_0,    
     input BVH_Node node_1,    
     input BVH_Leaf leaf_0[2],       
@@ -75,9 +77,13 @@ module RayCore(
     output logic [31:0] pixel_counter,
     output ShadeOutputData shade_out,
     // The primitive indeices [0] for query
-    output PrimitiveQueryData primitive_query_0,
+    output PrimitiveQueryData aabb_query_0,
     // The primitive indeices [1] for query
-    output PrimitiveQueryData primitive_query_1,
+    output PrimitiveQueryData aabb_query_1,
+    // The primitive indeices [0] for query
+    output PrimitiveQueryData sphere_query_0,
+    // The primitive indeices [1] for query
+    output PrimitiveQueryData sphere_query_1,
     // The node index 0 for query
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index_0,
     // The node index 1 for query
@@ -131,11 +137,13 @@ module RayCore(
         .valid(SURF_Valid),
         .out(SURF_Output),        
 
-        .primitive_query(primitive_query_0),
+        .aabb_query(aabb_query_0),
 
         .debug_data(debug_data),
         
-        .p(p0),
+        .aabb(aabb_0),
+        .sphere(sphere_0),
+
         .node_index(node_index_0),
         .node(node_0),
         .leaf(leaf_0)
@@ -152,9 +160,11 @@ module RayCore(
         .out(SHDW_Output),
         .fifo_full(SHDW_FIFO_Full),
 
-        .primitive_query(primitive_query_1),
+        .aabb_query(aabb_query_1),
 
-        .p(p1),
+        .aabb(aabb_1),
+        .sphere(sphere_1),
+
         .node_index(node_index_1),
         .node(node_1),
         .leaf(leaf_1)    
