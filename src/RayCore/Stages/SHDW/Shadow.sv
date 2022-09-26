@@ -95,7 +95,7 @@ module ShadowUnit (
     // Store the primitive groups data. Each group present a range of primitives
     // which may have possible hit.
     PrimitiveGroupFIFO PrimitiveFIFO[`NUM_PRIMITIVE_TYPES];	    
-    logic PrimitiveFIFOEmpty[`NUM_PRIMITIVE_TYPES];    
+    logic PrimitiveFIFOEmpty;
     logic FIFOFull = 1'b0;
 
     assign fifo_full                = FIFOFull;    
@@ -105,10 +105,10 @@ module ShadowUnit (
     assign sphere_query.EndIndex    = PrimitiveFIFO[PT_Sphere].EndPrimitiveIndex;
         
     initial begin
-        PrimitiveFIFO[PT_AABB].Top = 0;			
-        PrimitiveFIFO[PT_AABB].Bottom = 0;
-        PrimitiveFIFO[PT_Sphere].Top = 0;			
-        PrimitiveFIFO[PT_Sphere].Bottom = 0;                        
+        for (int t = PT_AABB; t <= PT_Sphere; t = t + 1) begin                                               
+            PrimitiveFIFO[t].Top = 0;			
+            PrimitiveFIFO[t].Bottom = 0;
+        end        
         PrimitiveFIFO_QueueGlobalPrimitives(PrimitiveFIFO[PT_AABB], PrimitiveFIFO[PT_Sphere]);
     end
 
@@ -127,7 +127,7 @@ module ShadowUnit (
                 end               
             end         
 
-            // Queue possible hit primitives if there is any.              
+            // Queue possible hit primitives if there is any from BVH Unit.              
             PrimitiveFIFO_QueuePrimitiveGroup(
                 BU_Valid, 
                 PT_AABB, 
@@ -143,13 +143,12 @@ module ShadowUnit (
                     BU_Strobe <= 0;
                     BU_RestartStrobe <= 0;  
 
-                    PrimitiveFIFO[PT_AABB].StartPrimitiveIndex <= 0;
-                    PrimitiveFIFO[PT_AABB].EndPrimitiveIndex <= 0;             
-                    PrimitiveFIFO[PT_AABB].RealEndPrimitiveIndex <= 0;         
-
-                    PrimitiveFIFO[PT_Sphere].StartPrimitiveIndex <= 0;
-                    PrimitiveFIFO[PT_Sphere].EndPrimitiveIndex <= 0;             
-                    PrimitiveFIFO[PT_Sphere].RealEndPrimitiveIndex <= 0;        
+                    // Reset primitive FIFO
+                    for (int t = PT_AABB; t <= PT_Sphere; t = t + 1) begin                        
+                        PrimitiveFIFO[t].StartPrimitiveIndex <= 0;
+                        PrimitiveFIFO[t].EndPrimitiveIndex <= 0;             
+                        PrimitiveFIFO[t].RealEndPrimitiveIndex <= 0;         
+                    end
 
                     if (FIFOFull) begin                        
                         CurrentInput = Input;                  
@@ -157,17 +156,15 @@ module ShadowUnit (
 
                         AnyHit <= 0;
                             
-                        // Init BVH traversal
+                        // Reset primitive FIFO
                         PrimitiveFIFO[PT_AABB].Top = 0;			
-                        PrimitiveFIFO[PT_AABB].Bottom = 1;	
-                        PrimitiveFIFOEmpty[PT_AABB] = 0;
-
+                        PrimitiveFIFO[PT_AABB].Bottom = 1;	                        
                         PrimitiveFIFO[PT_Sphere].Top = 0;			
-                        PrimitiveFIFO[PT_Sphere].Bottom = 1;			                        
-                        PrimitiveFIFOEmpty[PT_Sphere] = 0;
+                        PrimitiveFIFO[PT_Sphere].Bottom = 1;			                       
+                        PrimitiveFIFOEmpty = 0;
                         
                         if (CurrentInput.SurfaceType == ST_None) begin    
-                            // Shadow is done since the fragment is not a primitive.
+                            // No need to process shadowing as this fragment hits nothing.
                             NextState <= SHDWS_Done;                            
                         end
                         else begin       
@@ -190,15 +187,13 @@ module ShadowUnit (
                         NextState <= SHDWS_Done;  
                     end			                 
                     else begin         
-                        PrimitiveFIFO_Loop(
-                            PT_AABB, 
-                            PrimitiveFIFOEmpty[PT_AABB],
-                            PrimitiveFIFO[PT_AABB]
-                        );                    
-
-                        if (BU_Finished && PrimitiveFIFOEmpty[PT_AABB]) begin                                          
+                        // Fetch primitives
+                        PrimitiveFIFO_Fetch(PrimitiveFIFOEmpty, PrimitiveFIFO[PT_AABB], PrimitiveFIFO[PT_Sphere]);
+                        
+                        // If all primitives have been processed
+                        if (BU_Finished && PrimitiveFIFOEmpty) begin
                             NextState <= SHDWS_Done;
-                        end                                                           
+                        end                                            
                     end
                 end
 
