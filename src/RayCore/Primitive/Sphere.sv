@@ -60,24 +60,23 @@ module SphereHit(
     output HitData hit_data    
     );    
 
-    assign valid = 1;
-    assign hit_data.PI = pi;
-    assign hit_data.Color = color;
-
     Fixed Discriminant;    
 
     //always_comb begin
     always_ff @(posedge clk) begin			
-        if (IsValidPrimitiveIndex(pi) && Discriminant.Value[`FIXED_WIDTH-1] == 0) begin
-            hit_data.bHit = 1;
-            hit_data.T = _Fixed(0);
-            hit_data.SurfaceType = st;
-            hit_data.Normal = _FixedNorm3(_FixedNorm(0), _FixedNorm(1), _FixedNorm(0));
+        if (IsValidPrimitiveIndex(pi) && r.PI != pi && Discriminant.Value[`FIXED_WIDTH-1] == 0) begin            
+            hit_data.bHit <= 1;
+            hit_data.PI <= pi;
+            hit_data.Color <= color;                                    
+            hit_data.T <= _Fixed(0);
+            hit_data.SurfaceType <= st;
+            hit_data.Normal <= _FixedNorm3(_FixedNorm(0), _FixedNorm(1), _FixedNorm(0));            
             valid <= 1;
         end
         else begin
-            hit_data.bHit = 0;
-            hit_data.SurfaceType = ST_None;
+            hit_data.bHit <= 0;
+            hit_data.PI <= `NULL_PRIMITIVE_INDEX;
+            hit_data.SurfaceType <= ST_None;
             valid <= 1;
         end        
     end

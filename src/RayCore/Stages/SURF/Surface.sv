@@ -194,19 +194,14 @@ module SurfaceUnit (
     // Store the primitive groups data. Each group present a range of primitives
     // which may have possible hit.
     PrimitiveGroupFIFO PrimitiveFIFO[`NUM_PRIMITIVE_TYPES];	    
-    logic PrimitiveFIFOEmpty;
+    logic PrimitiveFIFOEmpty;    
 
-    assign fifo_full                = FIFOFull;    
-    assign aabb_query.StartIndex    = PrimitiveFIFO[PT_AABB].StartPrimitiveIndex;
-    assign aabb_query.EndIndex      = PrimitiveFIFO[PT_AABB].EndPrimitiveIndex;
-    assign sphere_query.StartIndex  = 0;//PrimitiveFIFO[PT_Sphere].StartPrimitiveIndex;
-    assign sphere_query.EndIndex    = 0;//PrimitiveFIFO[PT_Sphere].EndPrimitiveIndex;
+    assign debug_data.Number[1] = sphere_query.StartIndex;
+    assign debug_data.Number[0] = sphere[0].Color.Channel[0];
+
+    assign fifo_full = FIFOFull;    
         
     initial begin
-        for (int t = PT_AABB; t <= PT_Sphere; t = t + 1) begin                                               
-            PrimitiveFIFO[t].Top = 0;			
-            PrimitiveFIFO[t].Bottom = 0;
-        end
         PrimitiveFIFO_QueueGlobalPrimitives(PrimitiveFIFO[PT_AABB], PrimitiveFIFO[PT_Sphere]);
     end
 
@@ -227,8 +222,7 @@ module SurfaceUnit (
 
             // Queue possible hit primitives if there is any from BVH Unit.              
             PrimitiveFIFO_QueuePrimitiveGroup(
-                BU_Valid, 
-                PT_AABB, 
+                BU_Valid,                 
                 LeafStartPrim, 
                 LeafNumPrim, 
                 PrimitiveFIFO[PT_AABB]
@@ -240,14 +234,7 @@ module SurfaceUnit (
                     valid <= 0;
                     BU_Strobe <= 0;
                     BU_RestartStrobe <= 0;       
-
-                    // Reset primitive FIFO
-                    for (int t = PT_AABB; t <= PT_Sphere; t = t + 1) begin                        
-                        PrimitiveFIFO[t].StartPrimitiveIndex <= 0;
-                        PrimitiveFIFO[t].EndPrimitiveIndex <= 0;             
-                        PrimitiveFIFO[t].RealEndPrimitiveIndex <= 0;         
-                    end
-
+                    
                     if (FIFOFull) begin                        
                         CurrentInput = Input;                  
                         FIFOFull <= 0;
@@ -270,6 +257,11 @@ module SurfaceUnit (
 
                     // Fetch primitives
                     PrimitiveFIFO_Fetch(PrimitiveFIFOEmpty, PrimitiveFIFO[PT_AABB], PrimitiveFIFO[PT_Sphere]);
+
+                    aabb_query.StartIndex    = PrimitiveFIFO[PT_AABB].StartPrimitiveIndex;
+                    aabb_query.EndIndex      = PrimitiveFIFO[PT_AABB].EndPrimitiveIndex;
+                    sphere_query.StartIndex  = PrimitiveFIFO[PT_Sphere].StartPrimitiveIndex;
+                    sphere_query.EndIndex    = PrimitiveFIFO[PT_Sphere].EndPrimitiveIndex;                        
                     
                     // If all primitives have been processed
                     if (BU_Finished && PrimitiveFIFOEmpty) begin

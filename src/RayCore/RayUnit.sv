@@ -179,8 +179,8 @@ module RayUnit_FindClosestHit (
     FindClosestHit#(`AABB_TEST_UNIT_SIZE + `SPHERE_TEST_UNIT_SIZE) PRP(
         .r(r),
         .hit_data(HitData),	
-        .closest_hit_data(hit_data)		
-    );      
+        .closest_hit_data(hit_data)
+    );          
 endmodule
 //-------------------------------------------------------------------
 // Find any hit primitives against the ray.

@@ -192,7 +192,7 @@ module _AABBFindHit(
 
     always_comb begin        
         // If primitive is not null
-        if (pi[`PRIMITIVE_INDEX_WIDTH - 1] == 0 && ray_vi != pi && HitCondition) begin
+        if (IsValidPrimitiveIndex(pi) && ray_vi != pi && HitCondition) begin
             hit_data.bHit <= 1;
             hit_data.PI <= pi; 
             hit_data.Color <= color;     
@@ -201,6 +201,7 @@ module _AABBFindHit(
         else begin
             hit_data.bHit <= 0;             
             hit_data.PI <= `NULL_PRIMITIVE_INDEX;                            
+            hit_data.SurfaceType <= ST_None;
         end
     end
 

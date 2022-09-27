@@ -136,13 +136,14 @@ module RayCore(
         .output_fifo_full(SHDW_FIFO_Full),
         .valid(SURF_Valid),
         .out(SURF_Output),        
-
-        .aabb_query(aabb_query_0),
-
+        
         .debug_data(debug_data),
         
+        .aabb_query(aabb_query_0),       
         .aabb(aabb_0),
-        .sphere(sphere_0),
+
+        .sphere_query(sphere_query_0),
+        .sphere(sphere_0),        
 
         .node_index(node_index_0),
         .node(node_0),
@@ -158,11 +159,12 @@ module RayCore(
         .output_fifo_full(SHAD_FIFO_Full),
         .valid(SHDW_Valid),
         .out(SHDW_Output),
-        .fifo_full(SHDW_FIFO_Full),
+        .fifo_full(SHDW_FIFO_Full),        
 
         .aabb_query(aabb_query_1),
-
         .aabb(aabb_1),
+
+        .sphere_query(sphere_query_1),
         .sphere(sphere_1),
 
         .node_index(node_index_1),

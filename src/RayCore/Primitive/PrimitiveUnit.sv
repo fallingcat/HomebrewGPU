@@ -28,7 +28,7 @@
 //
 //-------------------------------------------------------------------    
 module _QueryPrimitiveAABB (   
-    input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] i,
+    input [`PRIMITIVE_INDEX_WIDTH-1:0] i,
     input [31:0] s,
     input [95:0] a,
     output AABB out
@@ -37,7 +37,7 @@ module _QueryPrimitiveAABB (
     Fixed3 A;
 
     always_comb begin
-        if (IsValidBVHPrimitiveIndex(i)) begin
+        if (IsValidPrimitiveIndex(i)) begin
             S.Value <= s;        
             A.Dim[0].Value <= a[95:64];
             A.Dim[1].Value <= a[63:32];            
@@ -58,13 +58,13 @@ endmodule
 //
 //-------------------------------------------------------------------    
 module _QueryPrimitiveColor (   
-    input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] i,
+    input [`PRIMITIVE_INDEX_WIDTH-1:0] i,
     input [23:0] a,
     output RGB8 out
     );
 
     always_comb begin
-        if (IsValidBVHPrimitiveIndex(i)) begin
+        if (IsValidPrimitiveIndex(i)) begin
             out.Channel[0] <= a[23:16];
             out.Channel[1] <= a[15:8];
             out.Channel[2] <= a[7:0];        
@@ -81,15 +81,15 @@ endmodule
 //
 //-------------------------------------------------------------------    
 module _QueryPrimitiveSurafceType (   
-    input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] i,
+    input [`PRIMITIVE_INDEX_WIDTH-1:0] i,
     output logic `PRIMITIVE_INDEX pi,      
     output SurfaceType out
     );
 
     always_comb begin                    
         // If pi is not NULL_PRIMITIVE
-        if (IsValidBVHPrimitiveIndex(i)) begin        
-            pi <=  i;
+        if (IsValidPrimitiveIndex(i)) begin        
+            pi <= i;
 
             `ifdef IMPLEMENT_REFRACTION        
                 if (i == (`BVH_GLOBAL_PRIMITIVE_START_IDX + 1)) begin                                
@@ -122,7 +122,7 @@ endmodule
 //
 //-------------------------------------------------------------------    
 module _PostQueryPrimitive (
-    input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] i,
+    input [`PRIMITIVE_INDEX_WIDTH-1:0] i,
     input Fixed3 offset,
     input AABB aabb,    
     output AABB out_aabb
@@ -130,7 +130,7 @@ module _PostQueryPrimitive (
     Fixed3 FinalOffset;    
 
     always_comb begin       
-        if (IsValidBVHPrimitiveIndex(i)) begin   
+        if (IsValidPrimitiveIndex(i)) begin   
             `ifdef LOAD_BVH_MODEL
                 if (i < `BVH_MODEL_RAW_DATA_SIZE) begin          
                     FinalOffset <= offset;            
@@ -167,7 +167,7 @@ module _QueryAABB (
     );    
 
     AABB TempAABB;
-    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] Index;
+    logic [`PRIMITIVE_INDEX_WIDTH-1:0] Index;
 
     _CheckPrimitiveIndex CHECK_PRIM_INDEX(   
         .index(i),
@@ -205,7 +205,7 @@ endmodule
 //
 //-------------------------------------------------------------------    
 module _QueryPrimitveSphere (      
-    input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] i,
+    input [`PRIMITIVE_INDEX_WIDTH-1:0] i,
     input [31:0] r,
     input [95:0] p,  
     output Fixed3 pos,
@@ -213,7 +213,7 @@ module _QueryPrimitveSphere (
     );      
 
     always_comb begin
-        if (IsValidBVHPrimitiveIndex(i)) begin   
+        if (IsValidPrimitiveIndex(i)) begin   
             radius.Value <= r;        
             pos.Dim[0].Value <= p[95:64];
             pos.Dim[1].Value <= p[63:32];
@@ -238,7 +238,7 @@ module _QuerySphere (
     output Primitive_Sphere p    
     );    
 
-    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] Index;
+    logic [`PRIMITIVE_INDEX_WIDTH-1:0] Index;
 
     _CheckPrimitiveIndex CHECK_PRIM_INDEX(   
         .index(i),
@@ -273,16 +273,16 @@ endmodule
 module _CheckPrimitiveIndex (   
     input logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] index,
     input logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] bound,
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] out_index
+    output logic [`PRIMITIVE_INDEX_WIDTH-1:0] out_index
     );    
 
     always_comb begin
         // Check if index is NULL_PRIMITIVE or not
-        if (index[`BVH_PRIMITIVE_INDEX_WIDTH-1] == 0 && index < bound) begin                    
-            out_index <= index;
+        if (IsValidBVHPrimitiveIndex(index) && index < bound) begin                    
+            out_index <= index[`PRIMITIVE_INDEX_WIDTH-1:0];
         end
         else begin                                    
-            out_index <= `BVH_NULL_PRIMITIVE_INDEX;
+            out_index <= `NULL_PRIMITIVE_INDEX;
         end        
     end
 endmodule
@@ -297,7 +297,7 @@ module _CheckPrimitiveRawIndex (
 
     always_comb begin
         // Check if index is NULL_PRIMITIVE or not
-        if (index[`BVH_PRIMITIVE_INDEX_WIDTH-1] == 0 && index < bound) begin                    
+        if (IsValidBVHPrimitiveIndex(index) && index < bound) begin                    
             out_index <= index;
         end
         else begin                                    
@@ -332,8 +332,8 @@ module PrimitiveUnit (
     logic [`BVH_AABB_RAW_DATA_WIDTH-1:0] AABBRawData[`BVH_AABB_RAW_DATA_SIZE];         
     logic [`BVH_SPHERE_RAW_DATA_WIDTH-1:0] SphereRawData[`BVH_SPHERE_RAW_DATA_SIZE];         
     Fixed Scale[6];    
-    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] PI_0[`RAY_CORE_SIZE], PI_1[`RAY_CORE_SIZE];
-    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] PSI_0[`RAY_CORE_SIZE], PSI_1[`RAY_CORE_SIZE];
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] PI_0[`RAY_CORE_SIZE][`BVH_AABB_RAW_DATA_SIZE], PI_1[`RAY_CORE_SIZE][`BVH_AABB_RAW_DATA_SIZE];
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] PSI_0[`RAY_CORE_SIZE][`BVH_AABB_RAW_DATA_SIZE], PSI_1[`RAY_CORE_SIZE][`BVH_AABB_RAW_DATA_SIZE];
 
     //-------------------------------------------------------------------
     //
@@ -464,18 +464,18 @@ module PrimitiveUnit (
     generate
         for (genvar c = 0; c < `RAY_CORE_SIZE; c = c + 1) begin : CORE_PRIM			
             for (genvar i = 0; i < `AABB_TEST_UNIT_SIZE; i = i + 1) begin : QUERY_AABB_PRIM
-                _CheckPrimitiveRawIndex CHK_0_0(aabb_query_0[c].StartIndex + i, aabb_query_0[c].EndIndex, PI_0[c]);
+                _CheckPrimitiveRawIndex CHK_0_0(aabb_query_0[c].StartIndex + i, aabb_query_0[c].EndIndex, PI_0[c][i]);
                 _QueryAABB QUERY_AABB_0(
-                    .raw(AABBRawData[PI_0[c]]),    
+                    .raw(AABBRawData[PI_0[c][i]]),    
                     .i(aabb_query_0[c].StartIndex + i),
                     .bound(aabb_query_0[c].EndIndex),    
                     .offset(offset),    
                     .p(aabb_0[c][i])
                 );
 
-                _CheckPrimitiveRawIndex CHK_0_1(aabb_query_1[c].StartIndex + i, aabb_query_1[c].EndIndex, PI_1[c]);                
+                _CheckPrimitiveRawIndex CHK_0_1(aabb_query_1[c].StartIndex + i, aabb_query_1[c].EndIndex, PI_1[c][i]);                
                 _QueryAABB QUERY_AABB_1(
-                    .raw(AABBRawData[PI_1[c]]),    
+                    .raw(AABBRawData[PI_1[c][i]]),    
                     .i(aabb_query_1[c].StartIndex + i),
                     .bound(aabb_query_1[c].EndIndex),    
                     .offset(offset),    
@@ -484,18 +484,18 @@ module PrimitiveUnit (
             end            
 
             for (genvar i = 0; i < `SPHERE_TEST_UNIT_SIZE; i = i + 1) begin : QUERY_SPHERE_PRIM
-                _CheckPrimitiveRawIndex CHK_1_0(sphere_query_0[c].StartIndex + i, sphere_query_0[c].EndIndex, PSI_0[c]);                
+                _CheckPrimitiveRawIndex CHK_1_0(sphere_query_0[c].StartIndex + i, sphere_query_0[c].EndIndex, PSI_0[c][i]);                
                 _QuerySphere QUERY_SPHERE_0(
-                    .raw(SphereRawData[PSI_0[c]]), 
+                    .raw(SphereRawData[PSI_0[c][i]]), 
                     .i(sphere_query_0[c].StartIndex + i),
                     .bound(sphere_query_0[c].EndIndex),        
                     .offset(offset),    
                     .p(sphere_0[c][i])
                 );
 
-                _CheckPrimitiveRawIndex CHK_1_1(sphere_query_1[c].StartIndex + i, sphere_query_1[c].EndIndex, PSI_1[c]);
+                _CheckPrimitiveRawIndex CHK_1_1(sphere_query_1[c].StartIndex + i, sphere_query_1[c].EndIndex, PSI_1[c][i]);
                 _QuerySphere QUERY_SPHERE_1(
-                    .raw(SphereRawData[PSI_1[c]]), 
+                    .raw(SphereRawData[PSI_1[c][i]]), 
                     .i(sphere_query_1[c].StartIndex + i),
                     .bound(sphere_query_1[c].EndIndex),        
                     .offset(offset),    

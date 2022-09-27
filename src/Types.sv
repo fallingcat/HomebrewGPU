@@ -122,7 +122,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_LEAVES_PATH                     `STRINGIFY(E:/MyWork/HomebrewGPU/data/chr_sword.vox.bvh.leaves.txt)
 
 // AABB raw data -----------------------------------------------------------
-// [151:120]         = Position.x
+// [151:120]        = Position.x
 // [119:88]         = Position.y
 // [87:56]          = Position.z        
 // [55:24]          = Size        
@@ -131,7 +131,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 // [7:0]            = Color.b
 `define BVH_AABB_RAW_DATA_WIDTH             152
 // Sphere raw data -----------------------------------------------------------
-// [151:120]         = Center.x
+// [151:120]        = Center.x
 // [119:88]         = Center.y
 // [87:56]          = Center.z        
 // [55:24]          = Radius        
@@ -179,7 +179,7 @@ endfunction
 `define BVH_NODE_STACK_SIZE                  2**`BVH_NODE_STACK_SIZE_WIDTH
 
 // Primitives ---------------------------------------------------------------------
-//`define LOAD_BVH_MODEL                      1
+`define LOAD_BVH_MODEL                      1
 `ifdef LOAD_BVH_MODEL
     `define BVH_MODEL_RAW_DATA_SIZE         207
 `else
@@ -193,11 +193,11 @@ endfunction
 `define MULTI_ISSUE                         1
 
 // Ray Core --------------------------------------------------------------
-//`define IMPLEMENT_SHADOWING                 1
+`define IMPLEMENT_SHADOWING                 1
 //`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
-//`define IMPLEMENT_BVH_TRAVERSAL             1
-//`define IMPLEMENT_BVH_LEAF_AABB_TEST        1
+`define IMPLEMENT_BVH_TRAVERSAL             1
+`define IMPLEMENT_BVH_LEAF_AABB_TEST        1
 
 // `define DEBUG_CORE                          1
 `define RAY_CORE_SIZE_WIDTH                 0
@@ -475,8 +475,7 @@ typedef struct {
     SurfaceType SurfaceType;
 } Primitive_Triangle;
 
-typedef struct {
-    PrimitiveType PrimType;
+typedef struct {    
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitive;
     logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] NumPrimitives;
 } PrimitiveGroup;
@@ -491,9 +490,7 @@ typedef struct {
     logic [3:0] Top;
     logic [3:0] Bottom;
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex;
-    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] EndPrimitiveIndex;
-    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] RealEndPrimitiveIndex;
-    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] AlignedNumPrimitives;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] EndPrimitiveIndex;    
 } PrimitiveGroupFIFO;
 
 typedef enum logic [3:0] {
