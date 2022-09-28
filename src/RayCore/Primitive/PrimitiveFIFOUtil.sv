@@ -50,7 +50,7 @@ function void PrimitiveFIFO_Reset(
     aabb_fifo.EndPrimitiveIndex <= 0;
 
     sphere_fifo.Top <= 0;
-    sphere_fifo.Bottom <= 1;
+    sphere_fifo.Bottom <= 0;
     sphere_fifo.StartPrimitiveIndex <= 0;
     sphere_fifo.EndPrimitiveIndex <= 0;
 endfunction    

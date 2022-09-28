@@ -196,8 +196,8 @@ module SurfaceUnit (
     PrimitiveGroupFIFO PrimitiveFIFO[`NUM_PRIMITIVE_TYPES];	    
     logic PrimitiveFIFOEmpty;    
 
-    assign debug_data.Number[1] = sphere_query.StartIndex;
-    assign debug_data.Number[0] = sphere[0].Color.Channel[0];
+    //assign debug_data.Number[1] = sphere_query.StartIndex;
+    //assign debug_data.Number[0] = sphere[0].Color.Channel[0];
 
     assign fifo_full = FIFOFull;    
         

@@ -95,7 +95,7 @@ module Renderer(
 	//logic [8:0] CameraDegree = 0;
 	
     assign flip = FrameFlip;
-	//assign debug_data.Number[0] = FrameKCycles;	
+	assign debug_data.Number[0] = FrameKCycles;	
 	
 	initial begin
 		//$readmemh("E:/MyWork/HomebrewGPU/Prototype/HomebrewGPU/data/CameraPos.txt", CameraPosLUT);		

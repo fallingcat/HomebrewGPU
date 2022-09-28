@@ -124,7 +124,7 @@ module HomebrewGPUTop(
             //CLK_GPU <= CLK12MHZ;
         `endif        
         //CLK_MC = CLK_GPU;        
-        CLK_MC = CLK25MHZ;        
+        CLK_MC = CLK25MHZ;                
         CLK_FBR = CLK25MHZ;
 
         //CLK_MC = CLK_GPU;        

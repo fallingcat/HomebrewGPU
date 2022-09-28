@@ -138,8 +138,13 @@ module RayUnit_FindClosestHit (
 	);
 
     logic [`AABB_TEST_UNIT_SIZE-1:0] AABBValid;
-    logic [`SPHERE_TEST_UNIT_SIZE-1:0] SphereValid;
-    HitData HitData[`AABB_TEST_UNIT_SIZE + `SPHERE_TEST_UNIT_SIZE];    
+
+    `ifdef IMPLEMENT_SPHERE_PRIMITIVE
+        logic [`SPHERE_TEST_UNIT_SIZE-1:0] SphereValid;
+        HitData HitData[`AABB_TEST_UNIT_SIZE + `SPHERE_TEST_UNIT_SIZE];    
+    `else
+        HitData HitData[`AABB_TEST_UNIT_SIZE];    
+    `endif
 
     assign valid = 1;//AABBValid && SphereValid;
 
@@ -158,6 +163,7 @@ module RayUnit_FindClosestHit (
         end
     endgenerate 
 
+`ifdef IMPLEMENT_SPHERE_PRIMITIVE
     //TODO : Sphere test 
     generate
         for (genvar i = 0; i < `SPHERE_TEST_UNIT_SIZE; i = i + 1) begin : SPHERE_HIT
@@ -181,6 +187,14 @@ module RayUnit_FindClosestHit (
         .hit_data(HitData),	
         .closest_hit_data(hit_data)
     );          
+`else
+    // Process all HitData and output the FinalHitData
+    FindClosestHit#(`AABB_TEST_UNIT_SIZE) PRP(
+        .r(r),
+        .hit_data(HitData),	
+        .closest_hit_data(hit_data)
+    );          
+`endif
 endmodule
 //-------------------------------------------------------------------
 // Find any hit primitives against the ray.
