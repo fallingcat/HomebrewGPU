@@ -70,10 +70,17 @@ module Renderer(
     logic RC_Valid[`RAY_CORE_SIZE], RC_FIFOFull[`RAY_CORE_SIZE];	
 	ShadeOutputData ShadeOut[`RAY_CORE_SIZE];    	 
 
-	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex0[`RAY_CORE_SIZE], EndPrimitiveIndex0[`RAY_CORE_SIZE];
-	BVH_Primitive_AABB P0[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    
-	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex1[`RAY_CORE_SIZE], EndPrimitiveIndex1[`RAY_CORE_SIZE];
-	BVH_Primitive_AABB P1[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    
+	PrimitiveQueryData AABB_Query_0[`RAY_CORE_SIZE];
+	Primitive_AABB AABB_0[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    	
+
+	PrimitiveQueryData AABB_Query_1[`RAY_CORE_SIZE];
+	Primitive_AABB AABB_1[`RAY_CORE_SIZE][`AABB_TEST_UNIT_SIZE];    
+
+	PrimitiveQueryData Sphere_Query_0[`RAY_CORE_SIZE];
+	Primitive_Sphere Sphere_0[`RAY_CORE_SIZE][`SPHERE_TEST_UNIT_SIZE];    
+
+	PrimitiveQueryData Sphere_Query_1[`RAY_CORE_SIZE];
+	Primitive_Sphere Sphere_1[`RAY_CORE_SIZE][`SPHERE_TEST_UNIT_SIZE];    
 
 	logic [`BVH_NODE_INDEX_WIDTH-1:0] BVHNodeIndex0[`RAY_CORE_SIZE], BVHNodeIndex1[`RAY_CORE_SIZE];
 	BVH_Node BVHNode0[`RAY_CORE_SIZE], BVHNode1[`RAY_CORE_SIZE];
@@ -88,14 +95,8 @@ module Renderer(
 	//logic [8:0] CameraDegree = 0;
 	
     assign flip = FrameFlip;
-	assign debug_data.Number = FrameKCycles;	
-
-	assign debug_data.LED[4] = (State == RS_Wait_VSync);    	    
-	assign debug_data.LED[5] = RC_Valid[0];
-
-	//assign debug_data.UARTDataValid = 1;	
-	//assign debug_data.UARTData = 32;	
-
+	assign debug_data.Number[0] = FrameKCycles;	
+	
 	initial begin
 		//$readmemh("E:/MyWork/HomebrewGPU/Prototype/HomebrewGPU/data/CameraPos.txt", CameraPosLUT);		
 
@@ -216,15 +217,6 @@ module Renderer(
                     x <= 0;
                     y <= 0; 		
 
-                    //x = 30;
-                    //y = 0; 		
-
-					//x = 160;
-                    //y = 120; 		
-
-					//x <= 317;
-                    //y <= 239; 					
-					
 					TG_Strobe <= 0;
 					TG_Reset <= 1;	
 					RS_Strobe <= 1;
@@ -357,12 +349,17 @@ module Renderer(
 
 		.offset(RenderState.PositionOffset),
 
-		.prim_index_0(StartPrimitiveIndex0),
-		.prim_index_1(StartPrimitiveIndex1),
-		.prim_bound_0(EndPrimitiveIndex0),
-		.prim_bound_1(EndPrimitiveIndex1),
-		.p0(P0),
-		.p1(P1)     
+		.aabb_query_0(AABB_Query_0),
+		.aabb_0(AABB_0),		
+
+		.aabb_query_1(AABB_Query_1),		
+		.aabb_1(AABB_1),
+
+		.sphere_query_0(Sphere_Query_0),		
+		.sphere_0(Sphere_0),   
+
+		.sphere_query_1(Sphere_Query_1),		
+		.sphere_1(Sphere_1)  
 	);			
 
 	generate
@@ -377,24 +374,32 @@ module Renderer(
 
 				.rs(RenderState),	
 
+				.debug_data(debug_data),
+
 				.pixel_counter(CorePixelCounter[i]),
 				.fifo_full(RC_FIFOFull[i]),        
 				.valid(RC_Valid[i]),
 				.shade_out(ShadeOut[i]),        
 				
 				.node_index_0(BVHNodeIndex0[i]),
-				.node_index_1(BVHNodeIndex1[i]),
 				.node_0(BVHNode0[i]),
-				.node_1(BVHNode1[i]),		
 				.leaf_0(BVHLeaf0[i]),
+
+				.node_index_1(BVHNodeIndex1[i]),				
+				.node_1(BVHNode1[i]),						
 				.leaf_1(BVHLeaf1[i]),
 
-				.start_primitive_0(StartPrimitiveIndex0[i]),
-				.end_primitive_0(EndPrimitiveIndex0[i]),		
-				.start_primitive_1(StartPrimitiveIndex1[i]),
-				.end_primitive_1(EndPrimitiveIndex1[i]),
-				.p0(P0[i]),
-				.p1(P1[i])
+				.aabb_query_0(AABB_Query_0[i]),
+				.aabb_0(AABB_0[i]),
+
+				.aabb_query_1(AABB_Query_1[i]),				
+				.aabb_1(AABB_1[i]),
+
+				.sphere_query_0(Sphere_Query_0[i]),
+				.sphere_0(Sphere_0[i]),
+
+				.sphere_query_1(Sphere_Query_1[i]),				
+				.sphere_1(Sphere_1[i])
 			);                			
         end
     endgenerate  

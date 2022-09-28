@@ -85,17 +85,17 @@ module ModelControl(
 			Counter = Counter + 1;
 			if (Counter == 0) begin
 				if (up) begin
-					offset.Dim[2] = Fixed_Add(offset.Dim[2], FixedOne());
+					offset.Dim[2] = Fixed_Add(offset.Dim[2], _Fixed(1));
 				end
 				else if (down) begin
-					offset.Dim[2] = Fixed_Sub(offset.Dim[2], FixedOne());
+					offset.Dim[2] = Fixed_Sub(offset.Dim[2], _Fixed(1));
 				end
 
 				if (left) begin
-					offset.Dim[0] = Fixed_Add(offset.Dim[0], FixedOne());
+					offset.Dim[0] = Fixed_Add(offset.Dim[0], _Fixed(1));
 				end
 				else if (right) begin
-					offset.Dim[0] = Fixed_Sub(offset.Dim[0], FixedOne());
+					offset.Dim[0] = Fixed_Sub(offset.Dim[0], _Fixed(1));
 				end
 				offset.Dim[1] = _Fixed(11);
 				offset2 <= _Fixed3u(0, 0, 0);							

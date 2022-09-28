@@ -46,6 +46,8 @@
 
 //`define GPU_CLK_100                         1
 //`define GPU_CLK_50                          1
+`define GPU_CLK_25                          1
+//`define GPU_CLK_12                          1
 
 `ifdef GPU_CLK_100
     `define FIXED_DIV_STEP                  4
@@ -64,6 +66,11 @@
 `define PRIMITIVE_INDEX_WIDTH		        16
 `define PRIMITIVE_INDEX				        [`PRIMITIVE_INDEX_WIDTH-1:0]
 `define NULL_PRIMITIVE_INDEX                {`PRIMITIVE_INDEX_WIDTH{1'b1}}
+function automatic IsValidPrimitiveIndex(input `PRIMITIVE_INDEX i);
+    begin
+        IsValidPrimitiveIndex = (i[`PRIMITIVE_INDEX_WIDTH-1] == 0);
+    end    
+endfunction
 
 // DDR2 with 27bits address == 256MB
 `define FRAMEBUFFER_ADDR_0                  27'h000_0000 //FB0 (320x240x32b) 0x00000 ~ 0x26000
@@ -115,7 +122,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_LEAVES_PATH                     `STRINGIFY(E:/MyWork/HomebrewGPU/data/chr_sword.vox.bvh.leaves.txt)
 
 // AABB raw data -----------------------------------------------------------
-// [151:56]         = Position.x
+// [151:120]        = Position.x
 // [119:88]         = Position.y
 // [87:56]          = Position.z        
 // [55:24]          = Size        
@@ -124,7 +131,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 // [7:0]            = Color.b
 `define BVH_AABB_RAW_DATA_WIDTH             152
 // Sphere raw data -----------------------------------------------------------
-// [151:56]         = Center.x
+// [151:120]        = Center.x
 // [119:88]         = Center.y
 // [87:56]          = Center.z        
 // [55:24]          = Radius        
@@ -156,10 +163,17 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define BVH_NODE_RAW_DATA_SIZE              20
 `define BVH_LEAF_RAW_DATA_SIZE              20
 
-`define BVH_LEAF_AABB_TEST                  1
 `define BVH_NODE_INDEX_WIDTH                16
 `define BVH_PRIMITIVE_INDEX_WIDTH           32
+`define BVH_PRIMITIVE_INDEX			        [`BVH_PRIMITIVE_INDEX_WIDTH-1:0]
 `define BVH_PRIMITIVE_AMOUNT_WIDTH          8
+`define BVH_NULL_PRIMITIVE_INDEX            {`BVH_PRIMITIVE_INDEX_WIDTH{1'b1}}
+function automatic IsValidBVHPrimitiveIndex(input `BVH_PRIMITIVE_INDEX i);
+    begin
+        IsValidBVHPrimitiveIndex = (i[`BVH_PRIMITIVE_INDEX_WIDTH-1] == 0);
+    end    
+endfunction
+
 
 `define BVH_NODE_STACK_SIZE_WIDTH            6
 `define BVH_NODE_STACK_SIZE                  2**`BVH_NODE_STACK_SIZE_WIDTH
@@ -179,10 +193,12 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define MULTI_ISSUE                         1
 
 // Ray Core --------------------------------------------------------------
-//`define IMPLEMENT_SHADOWING                 1
+`define IMPLEMENT_SHADOWING                 1
 `define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
 `define IMPLEMENT_BVH_TRAVERSAL             1
+`define IMPLEMENT_BVH_LEAF_AABB_TEST        1
+//`define IMPLEMENT_SPHERE_PRIMITIVE          1
 
 //`define DEBUG_CORE                          1
 `define RAY_CORE_SIZE_WIDTH                 0
@@ -194,6 +210,9 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define SPHERE_TEST_UNIT_SIZE_WIDTH         0
 `define SPHERE_TEST_UNIT_SIZE               2**`SPHERE_TEST_UNIT_SIZE_WIDTH
 
+`define TRIANGLE_TEST_UNIT_SIZE_WIDTH       0
+`define TRIANGLE_TEST_UNIT_SIZE             2**`TRIANGLE_TEST_UNIT_SIZE_WIDTH
+
 
 // Ray tracing level -----------------------------------------------------
 `define BOUNCE_LEVEL_WIDTH                  4
@@ -204,7 +223,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 // Configuration >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 typedef struct {
     logic [15:0] LED;
-    logic [15:0] Number;    
+    logic [15:0] Number[2];    
     // UART tx signal, connected to host-PC's UART-RXD, baud=115200 @ 50MHz    
     logic UARTDataValid;
     logic [7:0] UARTData;
@@ -327,7 +346,7 @@ typedef enum logic [3:0] {
     RS_Wait_VSync           = 4'd4    
 } RendererState;
 
-typedef enum logic [5:0] {
+typedef enum logic [3:0] {
     RSS_Init                = 4'd0,
     RSS_InitCameraSetup     = 4'd1,
     RSS_SetupCameraU        = 4'd2, 
@@ -399,8 +418,9 @@ typedef struct {
 typedef enum logic [1:0] {
     PT_AABB                 = 2'd0,
     PT_Sphere               = 2'd1,
-    ST_Triangle             = 2'd2     
+    ST_Triangle             = 2'd2    
 } PrimitiveType;
+`define NUM_PRIMITIVE_TYPES             3
 
 typedef enum logic [1:0] {
     ST_None                 = 2'd0,
@@ -440,33 +460,45 @@ typedef struct {
     RGB8 Color;      
     logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
-} BVH_Primitive_AABB;
+} Primitive_AABB;
 
 typedef struct {
     Sphere Sphere;      
     RGB8 Color;      
     logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
-} BVH_Primitive_Sphere;
+} Primitive_Sphere;
 
 typedef struct {
     Triangle Triangle;      
     RGB8 Color;      
     logic `PRIMITIVE_INDEX PI;      
     SurfaceType SurfaceType;
-} BVH_Primitive_Triangle;
+} Primitive_Triangle;
 
-typedef struct {
-    PrimitiveType PrimType;
+typedef struct {    
     logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitive;
     logic [`BVH_PRIMITIVE_AMOUNT_WIDTH-1:0] NumPrimitives;
 } PrimitiveGroup;
 
 typedef struct {
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartIndex;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] EndIndex;
+} PrimitiveQueryData;
+
+typedef struct {
     PrimitiveGroup Groups[16];
     logic [3:0] Top;
     logic [3:0] Bottom;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex;
+    logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] EndPrimitiveIndex;    
 } PrimitiveGroupFIFO;
+
+typedef enum logic [3:0] {
+    PFS_Init                = 4'd0,    
+    PFS_Working             = 4'd1,
+    PFS_Done                = 4'd2
+} PrimitiveFIFOState;
 
 // Ray Core >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 typedef enum logic [3:0] {
@@ -506,7 +538,8 @@ typedef struct {
 typedef enum logic [3:0] {
     SURFS_Init              = 4'd0,    
     SURFS_Surfacing         = 4'd1,     
-    SURFS_Done              = 4'd2
+    SURFS_WaitHitData       = 4'd2,     
+    SURFS_Done              = 4'd3
 } SurfaceState;
 
 typedef struct { 
@@ -526,7 +559,7 @@ typedef struct {
 typedef enum logic [3:0] {
     SHDWS_Init              = 4'd0,    
     SHDWS_AnyHit            = 4'd1, 
-    SHDWS_GenOutput         = 4'd2,
+    SHDWS_WaitNext          = 4'd2,     
     SHDWS_Done              = 4'd3
 } ShadowState;
 

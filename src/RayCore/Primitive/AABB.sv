@@ -168,9 +168,9 @@ module _AABBFindHitT(
     assign hit_t = B1 ? min_t : max_t; 
     assign hit = B2 && B3 && (ray_max_t.Value[`FIXED_WIDTH-1] == 1 || (B4 && B5));
 
-    Fixed_Greater A0(min_t, FixedZero(), B1);
+    Fixed_Greater A0(min_t, _Fixed(0), B1);
     Fixed_Less A1(min_t, max_t, B2);
-    Fixed_Greater A2(max_t, FixedZero(), B3);
+    Fixed_Greater A2(max_t, _Fixed(0), B3);
     Fixed_LessEqual A3(hit_t, ray_max_t, B4);    
     Fixed_GreaterEqual A4(hit_t, ray_min_t, B5);    
 endmodule
@@ -192,7 +192,7 @@ module _AABBFindHit(
 
     always_comb begin        
         // If primitive is not null
-        if (pi[`PRIMITIVE_INDEX_WIDTH - 1] == 0 && ray_vi != pi && HitCondition) begin
+        if (IsValidPrimitiveIndex(pi) && ray_vi != pi && HitCondition) begin
             hit_data.bHit <= 1;
             hit_data.PI <= pi; 
             hit_data.Color <= color;     
@@ -201,6 +201,7 @@ module _AABBFindHit(
         else begin
             hit_data.bHit <= 0;             
             hit_data.PI <= `NULL_PRIMITIVE_INDEX;                            
+            hit_data.SurfaceType <= ST_None;
         end
     end
 
@@ -216,10 +217,10 @@ module AABBHit_NormalMux(
     );   
     always_comb begin 
         if (b0) begin
-            n <= FixedNormNegOne();                
+            n <= _FixedNorm(-1);                
         end
         else if (b1) begin
-            n <= FixedNormOne();                
+            n <= _FixedNorm(1);                
         end
         else begin
             n.Value <= 0;
@@ -231,32 +232,31 @@ endmodule
 //-------------------------------------------------------------------    
 module _AABBHit_FindNormal(
     input Fixed3 dir,
-    input b_hit,
+    //inout HitData hit_data,
     input Fixed t0[3],
-    input Fixed t1[3],
-    input Fixed hit_t,
-    output FixedNorm3 hit_normal    
+    input Fixed t1[3],    
+    inout HitData hit_data    
     );   
 
-    logic B[6][2];   
+    logic B[6][2];       
     
-    Fixed_Equal         X00(hit_t, t0[0], B[0][0]);
-    Fixed_Greater       X01(dir.Dim[0], FixedZero(), B[0][1]);
-    Fixed_Equal         X10(hit_t, t1[0], B[1][0]);
-    Fixed_Less          X11(dir.Dim[0], FixedZero(), B[1][1]);   
-    AABBHit_NormalMux   XN(b_hit && B[0][0] && B[0][1], b_hit && B[1][0] && B[1][1], hit_normal.Dim[0]);    
+    Fixed_Equal         X00(hit_data.T, t0[0], B[0][0]);
+    Fixed_Greater       X01(dir.Dim[0], _Fixed(0), B[0][1]);
+    Fixed_Equal         X10(hit_data.T, t1[0], B[1][0]);
+    Fixed_Less          X11(dir.Dim[0], _Fixed(0), B[1][1]);   
+    AABBHit_NormalMux   XN(hit_data.bHit && B[0][0] && B[0][1], hit_data.bHit && B[1][0] && B[1][1], hit_data.Normal.Dim[0]);    
 
-    Fixed_Equal         Y00(hit_t, t0[1], B[2][0]);
-    Fixed_Greater       Y01(dir.Dim[1], FixedZero(), B[2][1]);
-    Fixed_Equal         Y10(hit_t, t1[1], B[3][0]);
-    Fixed_Less          Y11(dir.Dim[1], FixedZero(), B[3][1]);
-    AABBHit_NormalMux   YN(b_hit && B[2][0] && B[2][1], b_hit && B[3][0] && B[3][1], hit_normal.Dim[1]);
+    Fixed_Equal         Y00(hit_data.T, t0[1], B[2][0]);
+    Fixed_Greater       Y01(dir.Dim[1], _Fixed(0), B[2][1]);
+    Fixed_Equal         Y10(hit_data.T, t1[1], B[3][0]);
+    Fixed_Less          Y11(dir.Dim[1], _Fixed(0), B[3][1]);
+    AABBHit_NormalMux   YN(hit_data.bHit && B[2][0] && B[2][1], hit_data.bHit && B[3][0] && B[3][1], hit_data.Normal.Dim[1]);
 
-    Fixed_Equal         Z00(hit_t, t0[2], B[4][0]);
-    Fixed_Greater       Z01(dir.Dim[2], FixedZero(), B[4][1]);
-    Fixed_Equal         Z10(hit_t, t1[2], B[5][0]);
-    Fixed_Less          Z11(dir.Dim[2], FixedZero(), B[5][1]);
-    AABBHit_NormalMux   ZN(b_hit && B[4][0] && B[4][1], b_hit && B[5][0] && B[5][1], hit_normal.Dim[2]);       
+    Fixed_Equal         Z00(hit_data.T, t0[2], B[4][0]);
+    Fixed_Greater       Z01(dir.Dim[2], _Fixed(0), B[4][1]);
+    Fixed_Equal         Z10(hit_data.T, t1[2], B[5][0]);
+    Fixed_Less          Z11(dir.Dim[2], _Fixed(0), B[5][1]);
+    AABBHit_NormalMux   ZN(hit_data.bHit && B[4][0] && B[4][1], hit_data.bHit && B[5][0] && B[5][1], hit_data.Normal.Dim[2]);       
 endmodule
 //-------------------------------------------------------------------
 // 
@@ -279,20 +279,21 @@ module _AABBFindTest(
 
     Fixed_Greater A1(
         .a(max_t),
-        .b(FixedZero()),
+        .b(_Fixed(0)),
         .o(B[1])
     );
 endmodule
 
 //-------------------------------------------------------------------
-// Find hit point and get the normal of hit point
+// Find hit point between MinT and MaxT, get the normal of hit point
 //-------------------------------------------------------------------    
 module AABBHit(
     input Ray r,
     input AABB aabb,
     input RGB8 color,
     input `PRIMITIVE_INDEX pi,  
-    input SurfaceType st,      
+    input SurfaceType st,    
+    output logic valid,  
     output HitData hit_data    
     );    
 
@@ -300,7 +301,11 @@ module AABBHit(
     Fixed t1[3];
     Fixed MinT;
     Fixed MaxT;
+    wire HitData HitData;
     
+    assign hit_data = HitData;
+    assign valid = 1;
+
     _AABBFindT0T1 FIND_T0T1(
         .orig(r.Orig),
         .invdir(r.InvDir),
@@ -325,20 +330,19 @@ module AABBHit(
         .color(color),
         .pi(pi),     
         .st(st),
-        .hit_data(hit_data)
+        .hit_data(HitData)
     );
 
     _AABBHit_FindNormal FIND_NORM(
         .dir(r.Dir),
-        .b_hit(hit_data.bHit),
+        //.hit_data(HitData),        
         .t0(t0),
-        .t1(t1),
-        .hit_t(hit_data.T),
-        .hit_normal(hit_data.Normal)
-    );                  
+        .t1(t1),        
+        .hit_data(HitData)
+    );                      
 endmodule
 //-------------------------------------------------------------------
-// Find any hit
+// Test if a ray hit AABB between MinT and MaxT
 //-------------------------------------------------------------------    
 module AABBAnyHit(
     input Ray r,
@@ -382,11 +386,10 @@ module AABBAnyHit(
     );    
 endmodule
 //-------------------------------------------------------------------
-// Test if a ray hit AABB with infinite length
+// Test if a ray hit AABB between 0 and infinite
 //-------------------------------------------------------------------    
 module AABBTest(
-    input Fixed3 orig,
-    input Fixed3 invdir,
+    input Ray r,
     input AABB aabb,    
     output logic hit            
     );    
@@ -396,8 +399,8 @@ module AABBTest(
     Fixed MaxT;     
     
     _AABBFindT0T1 FIND_T0T1(
-        .orig(orig),
-        .invdir(invdir),
+        .orig(r.Orig),
+        .invdir(r.InvDir),
         .aabb(aabb),
         .t0(t0),
         .t1(t1)

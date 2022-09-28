@@ -115,11 +115,16 @@ module HomebrewGPUTop(
         `elsif GPU_CLK_50
             //CLK_GPU = CLK40MHZ;//CLK50MHZ;
             CLK_GPU <= CLK50MHZ;
+        `elsif GPU_CLK_25
+            CLK_GPU <= CLK25MHZ;
+        `elsif GPU_CLK_12
+            CLK_GPU <= CLK12MHZ;
         `else
             CLK_GPU <= CLK25MHZ;
             //CLK_GPU <= CLK12MHZ;
         `endif        
-        CLK_MC = CLK_GPU;        
+        //CLK_MC = CLK_GPU;        
+        CLK_MC = CLK25MHZ;                
         CLK_FBR = CLK25MHZ;
 
         //CLK_MC = CLK_GPU;        
@@ -203,7 +208,8 @@ module HomebrewGPUTop(
     HexDisplay_7_Seg DISPLAY_SEG(
         .clk(CLK_GPU),
         //.number(KCyclePerFrame),        
-        .number(DebugData.Number),
+        .number_0(DebugData.Number[0]),
+        .number_1(DebugData.Number[1]),
         .seg(Seg),
         .digit(Digit)
     );

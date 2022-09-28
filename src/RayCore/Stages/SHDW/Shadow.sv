@@ -21,18 +21,19 @@
 `include "../../../Math/Fixed3.sv"
 `include "../../../Math/FixedNorm.sv"
 `include "../../../Math/FixedNorm3.sv"
+`include "../../Primitive/PrimitiveFIFOUtil.sv"
 
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module ShadowCombineOutput (    
-    input clk,
+module _ShadowOutput (    
     input strobe,    
     input SurfaceOutputData input_data,
-    input HitData hit_data,
+    input shadow,
     output ShadowOutputData out
     );
-    always_ff @(posedge clk) begin
+
+    always_comb begin    
         if (strobe) begin
             out.LastColor <= input_data.LastColor;
             out.BounceLevel <= input_data.BounceLevel;
@@ -44,7 +45,7 @@ module ShadowCombineOutput (
             out.Color <= input_data.Color;
             out.Normal <= input_data.Normal;
             out.SurfaceType <= input_data.SurfaceType;                    
-            out.bShadow <= hit_data.bHit;                           
+            out.bShadow <= shadow;                           
         end        
     end
 endmodule
@@ -65,7 +66,8 @@ module ShadowUnit (
     input RenderState rs,    
     input output_fifo_full,	    
 
-    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB aabb[`AABB_TEST_UNIT_SIZE],
+    input Primitive_Sphere sphere[`SPHERE_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],        
 
@@ -73,16 +75,17 @@ module ShadowUnit (
     output logic fifo_full,
     output logic valid,
     output ShadowOutputData out,    
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
-    output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index        
+
+    output PrimitiveQueryData aabb_query,    
+    output PrimitiveQueryData sphere_query,    
+
+    output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index
     );
 
     ShadowState State, NextState = SHDWS_Init;     
 
     SurfaceOutputData Input, CurrentInput;
-
-    HitData HitData, AnyHitData;	       
+    logic CurrentHit, AnyHit;
         
     // Result of BVH traversal. Queue the resullt to PrimitiveFIFO for later processing.
     logic BU_Strobe, BU_Valid, BU_Finished, BU_RestartStrobe;        
@@ -91,108 +94,66 @@ module ShadowUnit (
 
     // Store the primitive groups data. Each group present a range of primitives
     // which may have possible hit.
-    PrimitiveGroupFIFO PrimitiveFIFO;	
-	logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] StartPrimitiveIndex, EndPrimitiveIndex, RealEndPrimitiveIndex, AlignedNumPrimitives;
+    PrimitiveGroupFIFO PrimitiveFIFO[`NUM_PRIMITIVE_TYPES];	    
+    logic PrimitiveFIFOEmpty;
+    logic FIFOFull = 1'b0;
 
-    //-------------------------------------------------------------------
-    //
-    //-------------------------------------------------------------------    
-    function NextPrimitiveData;
-        StartPrimitiveIndex = StartPrimitiveIndex + `AABB_TEST_UNIT_SIZE;       
-	endfunction    
-    //-------------------------------------------------------------------
-    //
-    //-------------------------------------------------------------------    
-    function QueuePrimitiveGroup;	
-        for (int i = 0; i < 2; i = i + 1) begin
-            if (LeafNumPrim[i] > 0) begin
-                PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = LeafStartPrim[i];
-                PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = LeafNumPrim[i];		    
-                PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
-            end            
-        end                        
-	endfunction   
-    //-------------------------------------------------------------------
-    //
-    //-------------------------------------------------------------------    
-	function DequeuePrimitiveGroup;		
-		StartPrimitiveIndex = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].StartPrimitive;                
-        AlignedNumPrimitives = PrimitiveFIFO.Groups[PrimitiveFIFO.Top].NumPrimitives;
-        RealEndPrimitiveIndex = StartPrimitiveIndex + AlignedNumPrimitives;
+    assign fifo_full = FIFOFull;    
+        
+    initial begin
+        PrimitiveFIFO_QueueGlobalPrimitives(PrimitiveFIFO[PT_AABB], PrimitiveFIFO[PT_Sphere]);
+    end
 
-        if (`AABB_TEST_UNIT_SIZE_WIDTH >= 1) begin
-            if (AlignedNumPrimitives[`AABB_TEST_UNIT_SIZE_WIDTH-1:0] != 0) begin
-                AlignedNumPrimitives = (((AlignedNumPrimitives >> `AABB_TEST_UNIT_SIZE_WIDTH) + 1) << `AABB_TEST_UNIT_SIZE_WIDTH);
-            end
-        end
-
-		EndPrimitiveIndex = StartPrimitiveIndex + AlignedNumPrimitives;        
-		PrimitiveFIFO.Top = PrimitiveFIFO.Top + 1;        
-	endfunction    
-    //-------------------------------------------------------------------
-    //
-    //-------------------------------------------------------------------    
-    function QueueGlobalPrimitives();
-        PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].PrimType = PT_AABB;
-        PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].StartPrimitive = `BVH_MODEL_RAW_DATA_SIZE;
-        PrimitiveFIFO.Groups[PrimitiveFIFO.Bottom].NumPrimitives = 3;		    
-        PrimitiveFIFO.Bottom = PrimitiveFIFO.Bottom + 1;
-    endfunction
-    //-------------------------------------------------------------------
-    //
-    //-------------------------------------------------------------------    
-    assign start_primitive = StartPrimitiveIndex;  
-    assign end_primitive = RealEndPrimitiveIndex;  
-
-    /*
-    initial begin	        
-        fifo_full <= 0;
-        NextState <= SHDWS_Init;
-	end	   
-    */
-    
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
-            fifo_full <= 0;
+            FIFOFull <= 0;
             NextState <= SHDWS_Init;
         end
         else begin           
             // If ray FIFO is not full
-            if (!fifo_full) begin        
+            if (!FIFOFull) begin        
                 if (add_input) begin
                     // Add one ray into ray FIFO                
                     Input = input_data;                                                    
-                    fifo_full = 1;
+                    FIFOFull = 1;
                 end               
-            end                                   
+            end         
+
+            // Queue possible hit primitives if there is any from BVH Unit.              
+            PrimitiveFIFO_QueuePrimitiveGroup(
+                BU_Valid,                 
+                LeafStartPrim, 
+                LeafNumPrim, 
+                PrimitiveFIFO[PT_AABB]
+            );                          
 
             State = NextState;
             case (State)
                 SHDWS_Init: begin    
                     valid <= 0;
                     BU_Strobe <= 0;
-                    BU_RestartStrobe <= 0;                                        
-                    if (fifo_full) begin                        
+                    BU_RestartStrobe <= 0;  
+                    
+                    if (FIFOFull) begin                        
                         CurrentInput = Input;                  
-                        fifo_full <= 0;
+                        FIFOFull <= 0;
 
-                        AnyHitData.bHit <= 0;
+                        AnyHit <= 0;
                             
-                        PrimitiveFIFO.Top = 0;			
-                        PrimitiveFIFO.Bottom = 0;			
-
-                        StartPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;
-                        EndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
-                        RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
+                        // Reset primitive FIFO
+                        PrimitiveFIFO[PT_AABB].Top = 0;			
+                        PrimitiveFIFO[PT_AABB].Bottom = 1;	                        
+                        PrimitiveFIFO[PT_Sphere].Top = 0;			
+                        PrimitiveFIFO[PT_Sphere].Bottom = 1;			                       
+                        PrimitiveFIFOEmpty = 0;
                         
                         if (CurrentInput.SurfaceType == ST_None) begin    
-                            // Shadow is done since the fragment is not a primitive.
+                            // No need to process shadowing as this fragment hits nothing.
                             NextState <= SHDWS_Done;                            
                         end
                         else begin       
                             // Init BVH traversal
-                            BU_Strobe <= 1;                                                                        
-                            QueueGlobalPrimitives();                                                            
+                            BU_Strobe <= 1;                                                                                                    
                             NextState <= SHDWS_AnyHit;          
                         end                                                                                                
                     end                    
@@ -200,45 +161,40 @@ module ShadowUnit (
                 
                 SHDWS_AnyHit: begin
                     valid <= 0;                    
-                    BU_Strobe <= 0;     
-
-                    // Queue possible hit primitives.  
-                    QueuePrimitiveGroup();               
-                                        
-                    if (HitData.bHit) begin
+                    BU_Strobe <= 0;    
+                    
+                    if (CurrentHit) begin
                         // If there is any hit, shadowing is done.
-                        AnyHitData.bHit <= HitData.bHit;
+                        AnyHit <= 1;
+                        BU_Strobe <= 0;
+                        BU_RestartStrobe <= 1;
                         NextState <= SHDWS_Done;  
                     end			                 
-                    else begin
-                        if (StartPrimitiveIndex != EndPrimitiveIndex) begin			                        
-                            // Process next batch of primitives.
-                            NextPrimitiveData();						                                            
-                        end
-                        else begin
-                            if (PrimitiveFIFO.Top != PrimitiveFIFO.Bottom) begin
-                                // Dequeue possible hit primitives for any hit test.
-                                DequeuePrimitiveGroup();                                 
-                            end
-                            else begin
-                                if (BU_Finished) begin    
-                                    // The fragment is not in shadow
-                                    NextState <= SHDWS_Done;                                                                                             
-                                end                            
-                            end                    
-                        end                                                                
-                    end
-                end      
-                
-                SHDWS_Done: begin               
-                    StartPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;
-                    EndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;             
-                    RealEndPrimitiveIndex <= `NULL_PRIMITIVE_INDEX;         
+                    else begin         
+                        // Fetch primitives
+                        PrimitiveFIFO_Fetch(PrimitiveFIFOEmpty, PrimitiveFIFO[PT_AABB], PrimitiveFIFO[PT_Sphere]);
+
+                        aabb_query.StartIndex    = PrimitiveFIFO[PT_AABB].StartPrimitiveIndex;
+                        aabb_query.EndIndex      = PrimitiveFIFO[PT_AABB].EndPrimitiveIndex;
+                        sphere_query.StartIndex  = PrimitiveFIFO[PT_Sphere].StartPrimitiveIndex;
+                        sphere_query.EndIndex    = PrimitiveFIFO[PT_Sphere].EndPrimitiveIndex;                        
                         
+                        // If all primitives have been processed
+                        if (BU_Finished && PrimitiveFIFOEmpty) begin
+                            NextState <= SHDWS_Done;
+                        end                                            
+                    end
+                end
+
+                SHDWS_WaitNext: begin                   
+                    NextState <= SHDWS_AnyHit;
+                end
+
+                SHDWS_Done: begin            
+                    BU_Strobe <= 0;
+                    BU_RestartStrobe <= 1;
                     if (!output_fifo_full) begin
-                        valid <= 1;          
-                        BU_Strobe <= 0;
-                        BU_RestartStrobe <= 1;    
+                        valid <= 1;                                  
                         NextState <= SHDWS_Init;            
                     end                    
                 end
@@ -251,7 +207,7 @@ module ShadowUnit (
     end            
     
     // Traverse BVH tree and find the possible hit primitives 
-    BVHUnit BU(    
+    BVHUnit BU(         
         .clk(clk),	 
         .resetn(resetn),
         .strobe(BU_Strobe),    
@@ -266,22 +222,23 @@ module ShadowUnit (
         .node(node),        
         .leaf(leaf),
 
+        .valid(BU_Valid),
         .finished(BU_Finished)        
     );
     
     // Find any hit from all possible primitives
     RayUnit_FindAnyHit RU(            
 		.r(CurrentInput.ShadowRay), 		
-		.p(p),
-		.out_hit(HitData.bHit)		
+		.aabb(aabb),
+        .sphere(sphere),
+		.out_hit(CurrentHit)		
 	);   
 
     // Setup output for next stage
-    ShadowCombineOutput CO ( 
-        .clk(clk),
-        .strobe(NextState == SHDWS_Done),         
+    _ShadowOutput CO(         
+        .strobe(NextState == SHDWS_Done && !output_fifo_full),         
         .input_data(CurrentInput),
-        .hit_data(AnyHitData),
+        .shadow(AnyHit),
         .out(out)
     );    
 endmodule
@@ -300,44 +257,41 @@ module PassOverShadowUnit (
     input RenderState rs,    
     input output_fifo_full,	    
     
-    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB aabb[`AABB_TEST_UNIT_SIZE],
+    input Primitive_Sphere sphere[`SPHERE_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],               
 
     // outputs...      
     output logic fifo_full,
     output logic valid,
-    output ShadowOutputData out,    
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
+    output ShadowOutputData out,  
+
+    output PrimitiveQueryData aabb_query,  
+    output PrimitiveQueryData sphere_query,
+
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index               
     );
 
     ShadowState State, NextState = SHDWS_Init;     
-
     SurfaceOutputData Input, CurrentInput;
+    logic CurrentHit, AnyHit;
+    logic FIFOFull = 1'b0;
+    
+    assign fifo_full = FIFOFull;
 
-    HitData HitData, AnyHitData;	        
-    
-    /*
-    initial begin	        
-        fifo_full <= 0;
-        NextState <= SHDWS_Init;
-	end	   
-    */
-    
     always_ff @(posedge clk, negedge resetn) begin
         if (!resetn) begin
-            fifo_full <= 0;
+            FIFOFull <= 0;
             NextState <= SHDWS_Init;
         end
         else begin           
             // If ray FIFO is not full
-            if (!fifo_full) begin        
+            if (!FIFOFull) begin        
                 if (add_input) begin
                     // Add one ray into ray FIFO                
                     Input = input_data;                                                    
-                    fifo_full = 1;
+                    FIFOFull = 1;
                 end               
             end                                   
 
@@ -345,10 +299,10 @@ module PassOverShadowUnit (
             case (State)
                 SHDWS_Init: begin    
                     valid <= 0;
-                    if (fifo_full) begin                        
+                    if (FIFOFull) begin                        
                         CurrentInput = Input;                  
-                        fifo_full <= 0;
-                        AnyHitData.bHit <= 0;                        
+                        FIFOFull <= 0;
+                        AnyHit <= 0;                        
                         NextState <= SHDWS_Done;                        
                     end                    
                 end                   
@@ -368,11 +322,10 @@ module PassOverShadowUnit (
     end            
     
     // Setup output for next stage
-    ShadowCombineOutput CO ( 
-        .clk(clk),
-        .strobe(NextState == SHDWS_Done),         
+    _ShadowOutput CO (         
+        .strobe(NextState == SHDWS_Done && !output_fifo_full),         
         .input_data(CurrentInput),
-        .hit_data(AnyHitData),
+        .shadow(AnyHit),
         .out(out)
     );
     
@@ -391,7 +344,8 @@ module Shadow(
     input SurfaceOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
-    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB aabb[`AABB_TEST_UNIT_SIZE],
+    input Primitive_Sphere sphere[`SPHERE_TEST_UNIT_SIZE],
     input BVH_Node node,    
     input BVH_Leaf leaf[2],           
 
@@ -399,8 +353,10 @@ module Shadow(
     output logic fifo_full,
     output logic valid,
     output ShadowOutputData out,
-    output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] start_primitive,
-	output logic [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] end_primitive,
+
+    output PrimitiveQueryData aabb_query,
+    output PrimitiveQueryData sphere_query,
+
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] node_index            
     );
 
@@ -412,17 +368,19 @@ module Shadow(
     ShadowUnit SHDW(
         .clk(clk),
         .resetn(resetn),
+
         .add_input(add_input),
         .input_data(input_data),        
+
         .rs(rs),        
-        .output_fifo_full(output_fifo_full),
+        .output_fifo_full(output_fifo_full),        
         .valid(valid),
         .out(out),
         .fifo_full(fifo_full),
 
-        .start_primitive(start_primitive),
-        .end_primitive(end_primitive),
-        .p(p),
+        .aabb_query(aabb_query),
+        .aabb(aabb),
+        .sphere(sphere),
 
         .node_index(node_index),
         .node(node),
@@ -440,43 +398,16 @@ module Shadow(
         .out(out),
         .fifo_full(fifo_full),
 
-        .start_primitive(start_primitive),
-        .end_primitive(end_primitive),
-        .p(p),
+        .aabb_query(aabb_query),
+        .aabb(aabb),
+
+        .sphere_query(sphere_query),
+        .sphere(sphere),
 
         .node_index(node_index),
         .node(node),
         .leaf(leaf)    
     );
 `endif
-
-    
-    /*
-    ShadowRayGenerator SRGEN (
-        .clk(clk),
-        .resetn(resetn),	
-        .add_input(add_input),	    
-        .input_data(input_data),                
-        .output_fifo_full(SHDW_FIFO_Full),
-        .valid(SRGEN_Valid),
-        .out(SRGEN_Output),  
-        .fifo_full(fifo_full)
-    );
-
-    ShadowUnit SHDW (
-        .clk(clk),
-        .resetn(resetn),
-        .add_input(SRGEN_Valid),
-        .input_data(SRGEN_Output),        
-        .rs(rs),        
-        .output_fifo_full(output_fifo_full),
-        .valid(valid),
-        .out(out),
-        .fifo_full(SHDW_FIFO_Full),
-        .start_primitive(start_primitive),
-        .end_primitive(end_primitive),
-        .p(p)    
-    );    
-    */
 
 endmodule

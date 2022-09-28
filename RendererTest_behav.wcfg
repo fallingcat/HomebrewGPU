@@ -6,21 +6,21 @@
       <db_ref path="RendererTest_behav.wdb" id="1">
          <top_modules>
             <top_module name="RendererTest" />
-            <top_module name="\$unit_DebugCore_sv " />
+            <top_module name="\$unit_AABB_sv " />
             <top_module name="glbl" />
          </top_modules>
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="999,989 ps"></ZoomStartTime>
-      <ZoomEndTime time="1,000,003 ps"></ZoomEndTime>
+      <ZoomStartTime time="0 ps"></ZoomStartTime>
+      <ZoomEndTime time="17 ps"></ZoomEndTime>
       <Cursor1Time time="1,000,000 ps"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="276"></NameColumnWidth>
-      <ValueColumnWidth column_width="84"></ValueColumnWidth>
+      <ValueColumnWidth column_width="80"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="5" />
+   <WVObjectSize size="6" />
    <wvobject fp_name="/RendererTest/CLK" type="logic">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>
@@ -54,8 +54,8 @@
          <obj_property name="ObjectShortName">reset</obj_property>
       </wvobject>
       <wvobject fp_name="/RendererTest/RENDERER/TG/output_fifo_full" type="array">
-         <obj_property name="ElementShortName">output_fifo_full[0:1]</obj_property>
-         <obj_property name="ObjectShortName">output_fifo_full[0:1]</obj_property>
+         <obj_property name="ElementShortName">output_fifo_full[0:0]</obj_property>
+         <obj_property name="ObjectShortName">output_fifo_full[0:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/RendererTest/RENDERER/TG/rs" type="array">
          <obj_property name="ElementShortName">rs</obj_property>
@@ -73,13 +73,9 @@
          <obj_property name="ElementShortName">debug_data</obj_property>
          <obj_property name="ObjectShortName">debug_data</obj_property>
       </wvobject>
-      <wvobject fp_name="/RendererTest/RENDERER/TG/frame_finished" type="logic">
-         <obj_property name="ElementShortName">frame_finished</obj_property>
-         <obj_property name="ObjectShortName">frame_finished</obj_property>
-      </wvobject>
       <wvobject fp_name="/RendererTest/RENDERER/TG/thread_out" type="array">
-         <obj_property name="ElementShortName">thread_out[0:1]</obj_property>
-         <obj_property name="ObjectShortName">thread_out[0:1]</obj_property>
+         <obj_property name="ElementShortName">thread_out[0:0]</obj_property>
+         <obj_property name="ObjectShortName">thread_out[0:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/RendererTest/RENDERER/TG/State" type="array">
          <obj_property name="ElementShortName">State[3:0]</obj_property>
@@ -90,16 +86,12 @@
          <obj_property name="ObjectShortName">NextState[3:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/RendererTest/RENDERER/TG/NX" type="array">
-         <obj_property name="ElementShortName">NX[0:2][9:0]</obj_property>
-         <obj_property name="ObjectShortName">NX[0:2][9:0]</obj_property>
+         <obj_property name="ElementShortName">NX[0:1][9:0]</obj_property>
+         <obj_property name="ObjectShortName">NX[0:1][9:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/RendererTest/RENDERER/TG/NY" type="array">
-         <obj_property name="ElementShortName">NY[0:2][9:0]</obj_property>
-         <obj_property name="ObjectShortName">NY[0:2][9:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/RendererTest/RENDERER/TG/FrameFinished" type="array">
-         <obj_property name="ElementShortName">FrameFinished[1:0]</obj_property>
-         <obj_property name="ObjectShortName">FrameFinished[1:0]</obj_property>
+         <obj_property name="ElementShortName">NY[0:1][9:0]</obj_property>
+         <obj_property name="ObjectShortName">NY[0:1][9:0]</obj_property>
       </wvobject>
    </wvobject>
    <wvobject fp_name="group346" type="group">
@@ -134,13 +126,82 @@
          <obj_property name="ElementShortName">ny[9:0]</obj_property>
          <obj_property name="ObjectShortName">ny[9:0]</obj_property>
       </wvobject>
-      <wvobject fp_name="/RendererTest/RENDERER/TG/\CORE_THREAD_ARRY[0].CORE_THREAD_DATA /frame_finished" type="logic">
-         <obj_property name="ElementShortName">frame_finished</obj_property>
-         <obj_property name="ObjectShortName">frame_finished</obj_property>
-      </wvobject>
       <wvobject fp_name="/RendererTest/RENDERER/TG/\CORE_THREAD_ARRY[0].CORE_THREAD_DATA /thread_out" type="array">
          <obj_property name="ElementShortName">thread_out</obj_property>
          <obj_property name="ObjectShortName">thread_out</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group318" type="group">
+      <obj_property name="label">PrimFIFO</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/clk" type="logic">
+         <obj_property name="ElementShortName">clk</obj_property>
+         <obj_property name="ObjectShortName">clk</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/resetn" type="logic">
+         <obj_property name="ElementShortName">resetn</obj_property>
+         <obj_property name="ObjectShortName">resetn</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/reset" type="logic">
+         <obj_property name="ElementShortName">reset</obj_property>
+         <obj_property name="ObjectShortName">reset</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/push" type="logic">
+         <obj_property name="ElementShortName">push</obj_property>
+         <obj_property name="ObjectShortName">push</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/prim_type" type="array">
+         <obj_property name="ElementShortName">prim_type[1:0]</obj_property>
+         <obj_property name="ObjectShortName">prim_type[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/start_prim" type="array">
+         <obj_property name="ElementShortName">start_prim[0:1][31:0]</obj_property>
+         <obj_property name="ObjectShortName">start_prim[0:1][31:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/num_prim" type="array">
+         <obj_property name="ElementShortName">num_prim[0:1][7:0]</obj_property>
+         <obj_property name="ObjectShortName">num_prim[0:1][7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/debug_data" type="array">
+         <obj_property name="ElementShortName">debug_data</obj_property>
+         <obj_property name="ObjectShortName">debug_data</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/pop" type="logic">
+         <obj_property name="ElementShortName">pop</obj_property>
+         <obj_property name="ObjectShortName">pop</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/primitive_query" type="array">
+         <obj_property name="ElementShortName">primitive_query</obj_property>
+         <obj_property name="ObjectShortName">primitive_query</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/empty" type="logic">
+         <obj_property name="ElementShortName">empty</obj_property>
+         <obj_property name="ObjectShortName">empty</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/PrimitiveFIFO" type="array">
+         <obj_property name="ElementShortName">PrimitiveFIFO</obj_property>
+         <obj_property name="ObjectShortName">PrimitiveFIFO</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/CurrentPrimitiveType" type="array">
+         <obj_property name="ElementShortName">CurrentPrimitiveType[1:0]</obj_property>
+         <obj_property name="ObjectShortName">CurrentPrimitiveType[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/StartPrimitiveIndex" type="array">
+         <obj_property name="ElementShortName">StartPrimitiveIndex[31:0]</obj_property>
+         <obj_property name="ObjectShortName">StartPrimitiveIndex[31:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/EndPrimitiveIndex" type="array">
+         <obj_property name="ElementShortName">EndPrimitiveIndex[31:0]</obj_property>
+         <obj_property name="ObjectShortName">EndPrimitiveIndex[31:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/RealEndPrimitiveIndex" type="array">
+         <obj_property name="ElementShortName">RealEndPrimitiveIndex[31:0]</obj_property>
+         <obj_property name="ObjectShortName">RealEndPrimitiveIndex[31:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/RendererTest/RENDERER/\CORE_ARRY[0].RAYCORE /SURF/SURF/PRIM_FIFO/AlignedNumPrimitives" type="array">
+         <obj_property name="ElementShortName">AlignedNumPrimitives[31:0]</obj_property>
+         <obj_property name="ObjectShortName">AlignedNumPrimitives[31:0]</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>

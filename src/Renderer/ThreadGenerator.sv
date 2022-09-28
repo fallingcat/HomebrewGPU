@@ -141,13 +141,7 @@ endmodule
         );		   
         ThreadGeneratorState State, NextState = TGS_Init;             
         logic `SCREEN_COORD NX[`RAY_CORE_SIZE+1], NY[`RAY_CORE_SIZE+1];                    
-
-        //assign debug_data.LED[0] = strobe;
-        assign debug_data.LED[1] = (State == TGS_Init);   
-        //assign debug_data.LED[2] = thread_out[CurrentCore].DataValid;    	            
-
-        //assign debug_data.Number = NY[0];
-
+        
         always_ff @( posedge clk, negedge resetn) begin		                       
             if (!resetn) begin            
                 NX[0] = x0;                                    

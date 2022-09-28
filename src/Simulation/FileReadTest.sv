@@ -25,7 +25,7 @@ module FileReadTest;
 
     logic CLK, CLK100;
     integer file;
-    BVH_Primitive_AABB P[4];
+    Primitive_AABB P[4];
     
 
     

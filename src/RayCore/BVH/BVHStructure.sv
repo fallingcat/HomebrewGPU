@@ -27,7 +27,8 @@
 //-------------------------------------------------------------------
 //
 //-------------------------------------------------------------------    
-module _DecodeBVHLeafIndex (   
+module _DecodeBVHLeafIndex (
+    input clk,
     input [`BVH_NODE_INDEX_WIDTH-1:0] index,         
     output logic [`BVH_NODE_INDEX_WIDTH-1:0] leaf_index
     );
@@ -45,6 +46,7 @@ endmodule
 //
 //-------------------------------------------------------------------    
 module _QueryBVHLeaf (   
+    input clk,
     input [`BVH_LEAF_RAW_DATA_WIDTH-1:0] raw,
     input valid,
     input Fixed3 offset,
@@ -54,7 +56,7 @@ module _QueryBVHLeaf (
 
     always_comb begin
         if (valid) begin                    
-            `ifdef BVH_LEAF_AABB_TEST    
+            `ifdef IMPLEMENT_BVH_LEAF_AABB_TEST    
                 Aabb.Min.Dim[0].Value <= raw[231:200];
                 Aabb.Min.Dim[1].Value <= raw[199:168];
                 Aabb.Min.Dim[2].Value <= raw[167:136];
@@ -72,7 +74,7 @@ module _QueryBVHLeaf (
         end        
     end
 
-    `ifdef BVH_LEAF_AABB_TEST    
+    `ifdef IMPLEMENT_BVH_LEAF_AABB_TEST    
         OffsetAABB OFFSET_AABB(
             .offset(offset),
             .aabb(Aabb),
@@ -84,6 +86,7 @@ endmodule
 //
 //-------------------------------------------------------------------    
 module _QueryBVHNode (   
+    input clk,
     input [`BVH_NODE_RAW_DATA_WIDTH-1:0] node_raw,
     input Fixed3 offset,    
     output BVH_Node node
@@ -145,10 +148,10 @@ module BVHStructure (
     //input PrimitiveType prim_type_1,
     //input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_index_1,    
     //input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_bound_1,
-    //output BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
-    //output BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE]    
-    //output BVH_Primitive_Sphere ps0[`SPHERE_TEST_UNIT_SIZE],
-    //output BVH_Primitive_Sphere ps1[`SPHERE_TEST_UNIT_SIZE]    
+    //output Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
+    //output Primitive_AABB p1[`AABB_TEST_UNIT_SIZE]    
+    //output Primitive_Sphere ps0[`SPHERE_TEST_UNIT_SIZE],
+    //output Primitive_Sphere ps1[`SPHERE_TEST_UNIT_SIZE]    
     );
 
     logic SDReadDataValid;

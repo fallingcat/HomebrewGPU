@@ -56,7 +56,7 @@ module BasicSurfaceUnit (
     // inputs...
     input SurfaceInputData input_data,            
     input RenderState rs,    
-    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...  
@@ -147,7 +147,7 @@ module BasicSurface (
     input SurfaceInputData input_data,                 
     input SurfaceInputData ref_input_data,            
     input RenderState rs,    
-    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...  
@@ -222,7 +222,7 @@ module BasicShadowUnit (
     // inputs...    
     input SurfaceOutputData input_data,    
     input RenderState rs,    
-    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
     input output_fifo_full,	    
 
     // outputs...      
@@ -303,7 +303,7 @@ module BasicShadow (
     input SurfaceOutputData input_data,    
     input RenderState rs,    
     input output_fifo_full,	    
-    input BVH_Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB p[`AABB_TEST_UNIT_SIZE],
 
     // outputs...  
     output logic fifo_full,
@@ -447,8 +447,8 @@ module BasicRayCore(
     // inputs...    
     input SurfaceInputData input_data,        
     input RenderState rs,
-    input BVH_Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
-    input BVH_Primitive_AABB p1[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
+    input Primitive_AABB p1[`AABB_TEST_UNIT_SIZE],
         
     // outputs...  
     output logic fifo_full,        
