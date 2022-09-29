@@ -3,6 +3,10 @@ HomebrewGPU is a simple ray tracing GPU on FPGA which implements basic ray-primi
 
 ![](/doc/HomebrewGPU.gif "")
 
+## FPGA Board
+[NEXYS A7](https://digilent.com/reference/programmable-logic/nexys-a7/start)
+
+
 ## Architecture
 
 ### Thread Generator
