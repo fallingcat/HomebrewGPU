@@ -414,13 +414,4 @@ module Renderer(
 		.mem_request(fb_mem_w_req)
 	);        		  
 
-	/*
-	MemoryRequestFIFO MRFIFO(
-		.clk(clk),
-		.resetn(restn),   
-		.mem_w_req_0(BVH_MemWRequest),
-		.mem_w_req_1(FB_MemWRequest),		
-		.out_mem_w_req(mem_request)
-	);	
-	*/
 endmodule
