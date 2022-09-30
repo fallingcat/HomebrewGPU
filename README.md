@@ -7,6 +7,11 @@ This is a project I used to learn programming in Verilog and I think it should b
 ## FPGA Board
 [NEXYS A7](https://digilent.com/reference/programmable-logic/nexys-a7/start)
 
+## Number Format
+The GPU uses 2 basic number formats for ALU.
+
+1. Q18.14 fixed point
+2. Q2.14 fixed point for nomalized value
 
 ## Architecture
 ![](/doc/GPU_Architecture.png "")
