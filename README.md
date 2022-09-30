@@ -9,6 +9,7 @@ This is a project I used to learn programming in Verilog and I think it should b
 
 
 ## Architecture
+![](/doc/GPU_Architecture.png "")
 
 ### Thread Generator
 
