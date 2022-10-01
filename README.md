@@ -7,6 +7,9 @@ This is a project I used to learn programming in Verilog and I think it should b
 ## FPGA Board
 [NEXYS A7](https://digilent.com/reference/programmable-logic/nexys-a7/start)
 
+## EDA Tool
+[Vivado 2021.2](https://www.xilinx.com/support/download.html)
+
 ## Number Format
 The GPU uses 2 basic number formats for ALU.
 
