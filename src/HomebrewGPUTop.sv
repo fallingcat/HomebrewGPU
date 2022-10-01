@@ -105,33 +105,20 @@ module HomebrewGPUTop(
 
     assign LED = DebugData.LED;    
 
-	//assign VGA_R = Blank ? 0 : (FinalColor.Channel[0] * 15) >> 8;
-	//assign VGA_G = Blank ? 0 : (FinalColor.Channel[1] * 15) >> 8;
-	//assign VGA_B = Blank ? 0 : (FinalColor.Channel[2] * 15) >> 8;		
-
     always_comb begin
         `ifdef GPU_CLK_100
             CLK_GPU <= CLK100MHZ;
-        `elsif GPU_CLK_50
-            //CLK_GPU = CLK40MHZ;//CLK50MHZ;
+        `elsif GPU_CLK_50            
             CLK_GPU <= CLK50MHZ;
         `elsif GPU_CLK_25
             CLK_GPU <= CLK25MHZ;
         `elsif GPU_CLK_12
             CLK_GPU <= CLK12MHZ;
         `else
-            CLK_GPU <= CLK25MHZ;
-            //CLK_GPU <= CLK12MHZ;
-        `endif        
-        //CLK_MC = CLK_GPU;        
+            CLK_GPU <= CLK25MHZ;            
+        `endif                
         CLK_MC = CLK25MHZ;                
         CLK_FBR = CLK25MHZ;
-
-        //CLK_MC = CLK_GPU;        
-        //CLK_FBR = CLK_GPU;        
-
-        //CLK_MC <= CLK100MHZ; 
-        //CLK_FBR <= CLK100MHZ;
     end
 
     ClockWizard ClkWiz (

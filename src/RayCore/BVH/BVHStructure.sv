@@ -69,7 +69,7 @@ module _QueryBVHLeaf (
             leaf.NumPrimitives <= raw[7:0];	
         end
         else begin
-            leaf.StartPrimitive <= `NULL_PRIMITIVE_INDEX;
+            leaf.StartPrimitive <= `BVH_NULL_PRIMITIVE_INDEX;
             leaf.NumPrimitives <= 0;	
         end        
     end
@@ -141,17 +141,6 @@ module BVHStructure (
     output BVH_Node node_1[`RAY_CORE_SIZE],
     output BVH_Leaf leaf_0[`RAY_CORE_SIZE][2],
     output BVH_Leaf leaf_1[`RAY_CORE_SIZE][2]
-    // Query Primitive
-    //input PrimitiveType prim_type_0,
-    //input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_index_0,
-    //input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_bound_0,    
-    //input PrimitiveType prim_type_1,
-    //input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_index_1,    
-    //input [`BVH_PRIMITIVE_INDEX_WIDTH-1:0] prim_bound_1,
-    //output Primitive_AABB p0[`AABB_TEST_UNIT_SIZE],
-    //output Primitive_AABB p1[`AABB_TEST_UNIT_SIZE]    
-    //output Primitive_Sphere ps0[`SPHERE_TEST_UNIT_SIZE],
-    //output Primitive_Sphere ps1[`SPHERE_TEST_UNIT_SIZE]    
     );
 
     logic SDReadDataValid;
@@ -168,13 +157,13 @@ module BVHStructure (
     initial begin	
         $readmemh(`BVH_NODES_PATH, NodeRawData);                
         ByteOffset <= 28;
-        NodeIndex <= 0;
-        //NodeRawData[0] <= 0;
+        NodeIndex <= 0;        
 
         $readmemh(`BVH_LEAVES_PATH, LeafRawData);	        
 	end		
     
     /*
+    // TODO : Read BVH structure to memory from SD card
     always @(posedge sd_clk, negedge resetn) begin
         if (!resetn) begin  
             init_done <= 0;
@@ -267,51 +256,5 @@ module BVHStructure (
             );       
         end
     endgenerate
-
-    /*
-    SDFileReader #(
-        .FILE_NAME("chr_sword.vox.bvh.nodes.bin"),      // file to read, ignore Upper and Lower Case
-                                                        // For example, if you want to read a file named HeLLo123.txt in the SD card,
-                                                        // the parameter here can be hello123.TXT, HELLO123.txt or HEllo123.Txt                       
-        .CLK_DIV(1)                                     // because clk=100MHz, CLK_DIV is set to 2
-                                                        // see SDFileReader.sv for detail
-    ) SD_FILE_READER (
-        .clk(sd_clk),
-        .rst_n(resetn),                                 // rst_n active low, re-scan and re-read SDcard by reset
-    
-        // signals connect to SD bus
-        .sdclk(SD_SCK),
-        .sdcmd(SD_CMD),
-        .sddat(SD_DAT),
-    
-        // display information on 12bit LED
-        //.sdcardstate    ( LED[ 3: 0]     ),
-        //.sdcardtype     ( LED[ 5: 4]     ),  // 0=Unknown, 1=SDv1.1 , 2=SDv2 , 3=SDHCv2
-        //.fatstate       ( LED[10: 8]     ),  // 3'd6 = DONE
-        //.filesystemtype ( LED[13:12]     ),  // 0=Unknown, 1=invalid, 2=FAT16, 3=FAT32
-        //.file_found     ( LED[15   ]     ),  // 0=file not found, 1=file found
-    
-        // file content output interface
-        .outreq(SDReadDataValid),
-        .outbyte(SDReadData)
-    );
-
-	uart_tx #(
-    	.UART_CLK_DIV(434),     // UART baud rate = clk freq/(2*UART_TX_CLK_DIV)
-                           	    // modify UART_TX_CLK_DIV to change the UART baud
-                           	    // for example, when clk=100MHz, UART_TX_CLK_DIV=868, then baud=100MHz/(2*868)=115200
-                           	    // 115200 is a typical SPI baud rate for UART                                        
-    	.FIFO_ASIZE(12),        // UART TX buffer size=2^FIFO_ASIZE bytes, Set it smaller if your FPGA doesn't have enough BRAM
-    	.BYTE_WIDTH(1),
-    	.MODE(2)
-	) UART_TX(
-    	.clk(sd_clk),
-    	.rst_n(resetn),    
-    	.wreq(SDReadDataValid),
-    	.wgnt(),
-    	.wdata(SDReadData),    
-    	.o_uart_tx(UART_RXD_OUT)
-	);
-    */        
 
 endmodule
