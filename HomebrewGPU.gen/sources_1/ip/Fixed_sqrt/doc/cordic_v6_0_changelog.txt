@@ -1,0 +1,233 @@
+2020.2.2:
+ * Version 6.0 (Rev. 16)
+ * No changes
+
+2020.2.1:
+ * Version 6.0 (Rev. 16)
+ * No changes
+
+2020.2:
+ * Version 6.0 (Rev. 16)
+ * No changes
+
+2020.1.1:
+ * Version 6.0 (Rev. 16)
+ * No changes
+
+2020.1:
+ * Version 6.0 (Rev. 16)
+ * No changes
+
+2019.2.2:
+ * Version 6.0 (Rev. 16)
+ * No changes
+
+2019.2.1:
+ * Version 6.0 (Rev. 16)
+ * No changes
+
+2019.2:
+ * Version 6.0 (Rev. 16)
+ * Bug Fix: Fix for C model memory leak in sin cos operation.
+ * Revision change in one or more subcores
+
+2019.1.3:
+ * Version 6.0 (Rev. 15)
+ * No changes
+
+2019.1.2:
+ * Version 6.0 (Rev. 15)
+ * No changes
+
+2019.1.1:
+ * Version 6.0 (Rev. 15)
+ * No changes
+
+2019.1:
+ * Version 6.0 (Rev. 15)
+ * Bug Fix: Fixed C model crash when multiple DSP IP C models are run together: AR 71876
+ * Revision change in one or more subcores
+
+2018.3.1:
+ * Version 6.0 (Rev. 14)
+ * No changes
+
+2018.3:
+ * Version 6.0 (Rev. 14)
+ * No changes
+
+2018.2:
+ * Version 6.0 (Rev. 14)
+ * No changes
+
+2018.1:
+ * Version 6.0 (Rev. 14)
+ * Revision change in one or more subcores
+
+2017.4:
+ * Version 6.0 (Rev. 13)
+ * General: Add cstdlib include to run_bitacc_cmodel to allow correct compilation with later versions of GCC. No change to functionality.
+
+2017.3:
+ * Version 6.0 (Rev. 12)
+ * General: Comment change in C model. No change to functionality
+ * Revision change in one or more subcores
+
+2017.2:
+ * Version 6.0 (Rev. 11)
+ * No changes
+
+2017.1:
+ * Version 6.0 (Rev. 11)
+ * No changes
+
+2016.4:
+ * Version 6.0 (Rev. 11)
+ * No changes
+
+2016.3:
+ * Version 6.0 (Rev. 11)
+ * General: Support for Spartan7 devices
+ * Revision change in one or more subcores
+
+2016.2:
+ * Version 6.0 (Rev. 10)
+ * No changes
+
+2016.1:
+ * Version 6.0 (Rev. 10)
+ * Fix in common c model utilities package for handling of arrays of real types in Matlab
+ * Revision change in one or more subcores
+
+2015.4.2:
+ * Version 6.0 (Rev. 9)
+ * No changes
+
+2015.4.1:
+ * Version 6.0 (Rev. 9)
+ * No changes
+
+2015.4:
+ * Version 6.0 (Rev. 9)
+ * Revision change in one or more subcores
+
+2015.3:
+ * Version 6.0 (Rev. 8)
+ * IP revision number added to HDL module, library, and include file names, to support designs with both locked and upgraded IP instances
+ * Revision change in one or more subcores
+
+2015.2.1:
+ * Version 6.0 (Rev. 7)
+ * No changes
+
+2015.2:
+ * Version 6.0 (Rev. 7)
+ * No changes
+
+2015.1:
+ * Version 6.0 (Rev. 7)
+ * Correction made to the bus interface data type definition TCL.
+ * Addition of Beta support for future devices
+ * Supported devices and production status are now determined automatically, to simplify support for future devices
+ * C models are no longer provided for 32-bit operating systems as Vivado has deprecated 32-bit OS support
+
+2014.4.1:
+ * Version 6.0 (Rev. 6)
+ * No changes
+
+2014.4:
+ * Version 6.0 (Rev. 6)
+ * C model correction to match HDL for out of range input values.
+ * Encrypted source files are concatenated together to reduce the number of files and to reduce simulator compile time
+ * Enabled out-of-context clock frequency setting by adding FREQ_HZ parameter to clock interface aclk_intf
+
+2014.3:
+ * Version 6.0 (Rev. 5)
+ * Fix for error in C model for Square Root using Unsigned Fractional type for output widths less than half the input width.
+
+2014.2:
+ * Version 6.0 (Rev. 4)
+ * No changes
+
+2014.1:
+ * Version 6.0 (Rev. 4)
+ * Core will now deliver an ooc_xdc file, without constraints, when latency is zero.
+ * C models for Windows are compiled using Microsoft Visual Studio 2012
+ * Internal device family name change, no functional changes
+ * Netlists created by write_verilog and write_vhdl are IEEE P1735 encrypted, with keys for supported simulators so that netlist simulation can still be done
+ * Enable third party synthesis tools to read encrypted netlists (but not source HDL)
+ * Support for Virtex Ultrascale devices at Pre-Production Status
+
+2013.4:
+ * Version 6.0 (Rev. 3)
+ * C model modified to be interoperable with C models from other cores. The xip_array_* structures and interface functions xip_array_<type>_get_data and xip_array_<type>_set_data are renamed xip_<core>_array_<type>_[]set|get]_data.
+ * Support for Kintex Ultrascale devices at Pre-Production Status
+
+2013.3:
+ * Version 6.0 (Rev. 2)
+ * Addition of C model
+ * Behavioral VHDL model replaced by Encrypted RTL. For more information on this change please refer to the Migrating and Upgrading section in the Product Guide
+ * Internal standardization in source file delivery, does not change behavior
+ * Support for Automotive Artix-7, Automotive Zynq, Defense Grade Artix-7, Defense Grade Zynq and Lower Power Artix-7 devices at Production Status
+ * Added default constraints for out of context flow
+ * Added support for Cadence IES and Synopsys VCS simulators
+ * Removed C model dependency on stlport (STL Portability) library; C model now uses STL built into the compiler
+ * Windows C model DLLs are statically linked to the Windows C run-time (CRT) library, to remove the runtime dependency on MSVCRT90.dll, which can cause problems when using the C model in a Windows compiler other than Visual Studio 2008
+ * C model updated to use third-party library MPIR version 2.6.0 (previously was version 2.2.1); the Windows MPIR DLLs are also statically linked to the Windows CRT library, to remove the dependency on MSVCRT90.dll
+
+2013.2:
+ * Version 6.0 (Rev. 1)
+ * Support for Series 7 devices at Production status
+ * Beta support for future devices
+ * Removing support for Defense Grade Low Power Artix7
+
+2013.1:
+ * Version 6.0
+ * Native Vivado Release
+ * There have been no functional or interface changes to this IP.  The version number has changed to support unique versioning in Vivado starting with 2013.1.
+
+(c) Copyright 2002 - 2021 Xilinx, Inc. All rights reserved.
+
+This file contains confidential and proprietary information
+of Xilinx, Inc. and is protected under U.S. and
+international copyright and other intellectual property
+laws.
+
+DISCLAIMER
+This disclaimer is not a license and does not grant any
+rights to the materials distributed herewith. Except as
+otherwise provided in a valid license issued to you by
+Xilinx, and to the maximum extent permitted by applicable
+law: (1) THESE MATERIALS ARE MADE AVAILABLE "AS IS" AND
+WITH ALL FAULTS, AND XILINX HEREBY DISCLAIMS ALL WARRANTIES
+AND CONDITIONS, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
+BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, NON-
+INFRINGEMENT, OR FITNESS FOR ANY PARTICULAR PURPOSE; and
+(2) Xilinx shall not be liable (whether in contract or tort,
+including negligence, or under any other theory of
+liability) for any loss or damage of any kind or nature
+related to, arising under or in connection with these
+materials, including for any direct, or any indirect,
+special, incidental, or consequential loss or damage
+(including loss of data, profits, goodwill, or any type of
+loss or damage suffered as a result of any action brought
+by a third party) even if such damage or loss was
+reasonably foreseeable or Xilinx had been advised of the
+possibility of the same.
+
+CRITICAL APPLICATIONS
+Xilinx products are not designed or intended to be fail-
+safe, or for use in any application requiring fail-safe
+performance, such as life-support or safety devices or
+systems, Class III medical devices, nuclear facilities,
+applications related to the deployment of airbags, or any
+other applications that could lead to death, personal
+injury, or severe property or environmental damage
+(individually and collectively, "Critical
+Applications"). Customer assumes the sole risk and
+liability of any use of Xilinx products in Critical
+Applications, subject only to applicable laws and
+regulations governing limitations on product liability.
+
+THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
+PART OF THIS FILE AT ALL TIMES.

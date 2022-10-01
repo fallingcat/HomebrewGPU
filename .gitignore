@@ -15,8 +15,6 @@
 /HomebrewGPU.runs/*
 /HomebrewGPU.sim/*
 /HomebrewGPU.hw/*
-/HomebrewGPU.gen/*
-/HomebrewGPU.srcs/*
 /Test/*
 /Wave/*
 /SoftwareEmu/HomebrewGPU/Debug/*
