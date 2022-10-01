@@ -1,6 +1,6 @@
 # Ray Core
 
-![](/doc/RayCore.png)
+<img src="/doc/RayCore.png" alt="Ray Core Architecture" width="360"/>
 
 ## Surface Stage
   ### BVH Unit
