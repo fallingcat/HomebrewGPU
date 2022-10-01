@@ -1,10 +1,9 @@
 // Copyright 1986-2021 Xilinx, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
-// Tool Version: Vivado v.2020.2.2 (win64) Build 3118627 Tue Feb  9 05:14:06 MST 2021
-// Date        : Wed May 19 20:42:01 2021
-// Host        : TigerPC running 64-bit major release  (build 9200)
-// Command     : write_verilog -force -mode synth_stub -rename_top mig -prefix
-//               mig_ mig_stub.v
+// Tool Version: Vivado v.2021.2 (win64) Build 3367213 Tue Oct 19 02:48:09 MDT 2021
+// Date        : Sat Oct  1 19:17:05 2022
+// Host        : TIGER running 64-bit major release  (build 9200)
+// Command     : write_verilog -force -mode synth_stub e:/MyWork/HomebrewGPU/HomebrewGPU.gen/sources_1/ip/mig/mig_stub.v
 // Design      : mig
 // Purpose     : Stub declaration of top-level module interface
 // Device      : xc7a100tcsg324-1

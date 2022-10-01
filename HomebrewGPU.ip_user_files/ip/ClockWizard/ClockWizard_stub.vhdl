@@ -1,10 +1,10 @@
 -- Copyright 1986-2021 Xilinx, Inc. All Rights Reserved.
 -- --------------------------------------------------------------------------------
 -- Tool Version: Vivado v.2021.2 (win64) Build 3367213 Tue Oct 19 02:48:09 MDT 2021
--- Date        : Fri Nov  5 16:30:55 2021
+-- Date        : Sat Oct  1 19:15:55 2022
 -- Host        : TIGER running 64-bit major release  (build 9200)
 -- Command     : write_vhdl -force -mode synth_stub
---               E:/MyWork/HomebrewGPU/Prototype/HomebrewGPU/HomebrewGPU.runs/ClockWizard_synth_1/ClockWizard_stub.vhdl
+--               E:/MyWork/HomebrewGPU/HomebrewGPU.runs/ClockWizard_synth_1/ClockWizard_stub.vhdl
 -- Design      : ClockWizard
 -- Purpose     : Stub declaration of top-level module interface
 -- Device      : xc7a100tcsg324-1
