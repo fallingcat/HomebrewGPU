@@ -23,5 +23,6 @@ The GPU uses 2 basic number formats for ALU.
 ### Primitive Unit
 
 ### Ray Core
+[Ray Core Architecture](/doc/RayCore.md)
 
 ### Frame Buffer Writer
