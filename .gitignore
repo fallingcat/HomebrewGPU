@@ -5,6 +5,7 @@
 *.ipch
 *.ilk
 *.pdb
+*.wcfg
 
 # Temp files
 *.dcp
@@ -13,6 +14,9 @@
 /HomebrewGPU.cache/*
 /HomebrewGPU.runs/*
 /HomebrewGPU.sim/*
+/HomebrewGPU.hw/*
+/HomebrewGPU.gen/*
+/HomebrewGPU.srcs/*
 /Test/*
 /Wave/*
 /SoftwareEmu/HomebrewGPU/Debug/*
