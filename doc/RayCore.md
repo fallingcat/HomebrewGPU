@@ -1,4 +1,8 @@
 # Ray Core
+Ray core is a 3 stages pipeline design which allows different threads to be processed at the same time on different stage. The 3 stages are :
+  - Surface stage : This stage process the ray from camera and find the closest hit of the ray then pass the hit information to next stage.
+  - Shadow stage : This stage cast a ray from closest hit position to light source to find the first hit. If there is any hit then this thread is under shadow. It will pass the shadow information to next stage.
+  - Shade stage: This stage will use the closest hit information to decide if it's the final color or reflection/refraction will occur. If reflection/refraction occurs, it will cast a reflection/refraction ray and pass the data back to surface stage.
 
 <img src="/doc/RayCore.png" alt="Ray Core Architecture" width="360"/>
 
