@@ -30,7 +30,7 @@ BVH structure stores the BVH tree structure data. It accepts the node or leaf qu
 Primitive Unit stores the raw data of all primitives of a scene. It accepts the query from ray core and output the related primitive data to ray core.
 
 ### [Ray Core](/doc/RayCore.md)
-Ray core process one thread to output the final color of the pixel. It accepts the thread from thread generator or reflection/refraction ray. It is a 3 stages pipeline, surface, shadow and shade stage. Multiple threads can be processed in ray core at different stages.
+Ray core process one thread to output the final color of the pixel. It accepts the thread from thread generator or reflection/refraction ray. It is a 3 stages pipeline, surface, shadow and shade stage. Multiple threads can be processed in ray core at different stages. The design of Ray Cores is scalable so you can use configuration to increase the number of ray cores to increase the throughput.
 
 ### Frame Buffer Writer
 This module is reponsible for cache the output of ray cores and write the pixel data to the frame buffer. It uses 8 sets of 16-pixel wide cache to store the output of ray cores. Some threads with reflection/refraction take longer to get the final color so this module will wait util all threads in one cache set are finished then write the data to the frame buffer.
