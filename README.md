@@ -6,7 +6,7 @@ This is a project I used to learn programming in Verilog and I think it should b
 ![](/doc/HomebrewGPU.gif "")
 
 ## FPGA Board
-[NEXYS A7](https://digilent.com/reference/programmable-logic/nexys-a7/start)
+[NEXYS A7 XC7A100T](https://digilent.com/reference/programmable-logic/nexys-a7/start)
 
 ## EDA Tool
 [Vivado 2021.2](https://www.xilinx.com/support/download.html)
