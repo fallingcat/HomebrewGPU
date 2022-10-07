@@ -92,22 +92,38 @@ module _QueryPrimitiveSurafceType (
             pi <= i;
 
             `ifdef IMPLEMENT_REFRACTION        
+                /*
                 if (i == (`BVH_GLOBAL_PRIMITIVE_START_IDX + 1)) begin                                
                     out <= ST_Dielectric;            
                 end 
                 else if (i == (`BVH_GLOBAL_PRIMITIVE_START_IDX + 2)) begin                    
-                    out <= ST_Metal;
+                    out <= ST_Dielectric;
                 end 
                 else begin
                     out <= ST_Lambertian;
                 end                
+                */
+                if (i >= 0 && i < `BVH_MODEL_RAW_DATA_SIZE) begin                    
+                    out <= ST_Dielectric;            
+                end     
+                else begin
+                    out <= ST_Lambertian;
+                end     
             `elsif IMPLEMENT_REFLECTION
                 if (i >= (`BVH_GLOBAL_PRIMITIVE_START_IDX + 1)) begin                    
                     out <= ST_Metal;            
                 end     
                 else begin
                     out <= ST_Lambertian;
+                end                     
+                /*
+                if (i == (`BVH_GLOBAL_PRIMITIVE_START_IDX)) begin                    
+                    out <= ST_Metal;            
                 end     
+                else begin
+                    out <= ST_Lambertian;
+                end     
+                */                
             `else
                 out <= ST_Lambertian;
             `endif  
