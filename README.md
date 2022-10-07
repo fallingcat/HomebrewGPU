@@ -4,6 +4,8 @@ HomebrewGPU is a simple ray tracing GPU on FPGA which implements basic ray-primi
 This is a project I used to learn programming in Verilog and I think it should be educational to someone who is new to FPGA.
 
 ![](/doc/HomebrewGPU.gif "")
+![](/doc/HomebrewGPU_2.gif "")
+![](/doc/HomebrewGPU_3.gif "")
 
 ## FPGA Board
 [NEXYS A7 XC7A100T](https://digilent.com/reference/programmable-logic/nexys-a7/start)
