@@ -317,8 +317,8 @@ typedef struct {
 } MemoryWriteRequest;
 
 typedef struct {
-    logic [`MC_CACHE_SET_SIZE_WIDTH-1:0] CacheSet;
-    logic `SCREEN_COORD x, y;    
+    logic [ADDR_WIDTH-1:0] Offset;
+    logic [`MC_CACHE_SET_SIZE_WIDTH-1:0] CacheSet;    
 } CacheWriteElement;
 
 typedef enum logic [3:0] {

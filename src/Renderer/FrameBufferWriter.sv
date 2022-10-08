@@ -75,8 +75,8 @@ module FrameBufferWriter (
                         // if the block is full, push it to FIFO and the bolcks in FIFO will be written to memory later
                         if (CacheBlockDirty[CacheSetIndex] == {`MC_CACHE_BLOCK_SIZE{1'b1}}) begin
                             CacheWriteFIFO[CacheWriteFIFOBottom].CacheSet = CacheSetIndex;
-                            CacheWriteFIFO[CacheWriteFIFOBottom].x = data[i].x;
-                            CacheWriteFIFO[CacheWriteFIFOBottom].y = data[i].y;
+                            CacheWriteFIFO[CacheWriteFIFOBottom].Offset = Offset;
+                            CacheWriteFIFO[CacheWriteFIFOBottom].Offset[`MC_CACHE_BLOCK_SIZE_WIDTH-1:0] = 0;
                             CacheWriteFIFOBottom = CacheWriteFIFOBottom + 1;
                             CacheBlockDirty[CacheSetIndex] = {`MC_CACHE_BLOCK_SIZE{1'b0}};
                         end
@@ -99,8 +99,7 @@ module FrameBufferWriter (
                 CurrentCacheWriteElement = CacheWriteFIFO[CacheWriteFIFOTop];
                 CacheWriteFIFOTop = CacheWriteFIFOTop + 1;
                 
-                mem_request.WriteAddress = (CurrentCacheWriteElement.y * `FRAMEBUFFER_WIDTH) + CurrentCacheWriteElement.x;
-                mem_request.WriteAddress[`MC_CACHE_BLOCK_SIZE_WIDTH-1:0] = 0;        
+                mem_request.WriteAddress = CurrentCacheWriteElement.Offset;        
                 mem_request.WriteAddress = (mem_request.WriteAddress * 2) + (APP_DATA_WIDTH / DQ_WIDTH);
                 mem_request.WriteAddress = (flip) ? mem_request.WriteAddress + `FRAMEBUFFER_ADDR_0 : mem_request.WriteAddress + `FRAMEBUFFER_ADDR_1;
                 
