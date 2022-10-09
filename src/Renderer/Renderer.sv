@@ -89,7 +89,8 @@ module Renderer(
 	Fixed3 CameraPos, CameraLook;
 	Fixed CameraFocus;		
 	Fixed Radius, OffsetPosX, OffsetPosZ;
-	logic [31:0] CorePixelCounter[`RAY_CORE_SIZE];
+	//logic [31:0] CorePixelCounter[`RAY_CORE_SIZE];	
+	logic [7:0] FBW_PixelCount;
 	logic [31:0] PixelCounter;
 	
 	//logic [8:0] CameraDegree = 0;
@@ -239,17 +240,14 @@ module Renderer(
 				(RS_Render): begin					                   
 					TG_Strobe <= 1;
 					TG_Reset <= 0;	
-					RS_Strobe <= 0;					
+					RS_Strobe <= 0;				
 
-					PixelCounter = 0;
-					for (int i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin                                						
-						PixelCounter = PixelCounter + CorePixelCounter[i];
-						if (PixelCounter >= `FRAMEBUFFER_PIXEL_COUNT) begin														
-							FrameCounter = FrameCounter + 1;
-							FrameKCycles = FrameKCycleCounter;
-							NextState <= RS_Wait_VSync;
-						end						
-					end				
+					PixelCounter = PixelCounter + FBW_PixelCount;
+					if (PixelCounter >= `FRAMEBUFFER_PIXEL_COUNT) begin														
+						FrameCounter = FrameCounter + 1;
+						FrameKCycles = FrameKCycleCounter;
+						NextState <= RS_Wait_VSync;
+					end						
                 end              
 
                 (RS_Wait_VSync): begin					
@@ -307,7 +305,7 @@ module Renderer(
 				.input_data(TG_Output[i].RayCoreInput),                
 				.rs(RenderState),	
 
-				.pixel_counter(CorePixelCounter[i]),
+				//.pixel_counter(CorePixelCounter[i]),
 				.frame_counter(FrameCounter),
 				// outputs...		
 				.fifo_full(RC_FIFOFull[i]),        
@@ -376,7 +374,7 @@ module Renderer(
 
 				.debug_data(debug_data),
 
-				.pixel_counter(CorePixelCounter[i]),
+				//.pixel_counter(CorePixelCounter[i]),
 				.fifo_full(RC_FIFOFull[i]),        
 				.valid(RC_Valid[i]),
 				.shade_out(ShadeOut[i]),        
@@ -411,6 +409,7 @@ module Renderer(
         .strobe(RC_Valid),        
 		.flip(FrameFlip),	
 		.data(ShadeOut),
+		.pixel_count(FBW_PixelCount),
 		.mem_request(fb_mem_w_req)
 	);        		  
 

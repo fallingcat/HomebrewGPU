@@ -30,6 +30,7 @@ module FrameBufferWriter (
     input strobe[`RAY_CORE_SIZE],
     input flip,	    
     input ShadeOutputData data[`RAY_CORE_SIZE],
+    output logic [31:0] pixel_count,
     output MemoryWriteRequest mem_request    
     );        
     logic [`MC_CACHE_SET_SIZE_WIDTH-1:0] CacheSetIndex;
@@ -106,9 +107,11 @@ module FrameBufferWriter (
                 mem_request.WriteData = Cache[CurrentCacheWriteElement.CacheSet];
                 mem_request.BlockCount = (32 * `MC_CACHE_BLOCK_SIZE / APP_DATA_WIDTH);
                 mem_request.WriteStrobe <= 1;
+                pixel_count <= `MC_CACHE_BLOCK_SIZE;
             end                                           
-            else begin
+            else begin                
                 mem_request.WriteStrobe <= 0;
+                pixel_count <= 0;
             end         
             LastStrobe = mem_request.WriteStrobe;           
         end                               

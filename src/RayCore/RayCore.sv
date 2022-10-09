@@ -186,6 +186,7 @@ module RayCore(
         .output_fifo_full(SURF_REF_FIFO_Full)        
     );        
 
+    /*
     _PixelCounter PIXEL_COUNTER(
         .clk(clk),
         .resetn(resetn),
@@ -193,5 +194,6 @@ module RayCore(
         .valid(valid),
         .pixel_counter(pixel_counter)        
     );      
+    */
 
 endmodule
