@@ -36,3 +36,7 @@ Ray core process one thread to output the final color of the pixel. It accepts t
 
 ### Frame Buffer Writer
 This module is reponsible for cache the output of ray cores and write the pixel data to the frame buffer. It uses 8 sets of 16-pixel wide cache to store the output of ray cores. Some threads with reflection/refraction take longer to get the final color so this module will wait util all threads in one cache set are finished then write the data to the frame buffer.
+
+## Acknowledge
+The voxel model in this project is created by [MagicaVoxel](https://ephtracy.github.io/index.html?page=mv_main).
+
