@@ -89,32 +89,6 @@ endfunction
 `define FRAMEBUFFER_HEIGHT                  10'd240
 `define FRAMEBUFFER_PIXEL_COUNT             ({{22{1'b0}}, `FRAMEBUFFER_WIDTH} * {{22{1'b0}}, `FRAMEBUFFER_HEIGHT})
 
-// Memory controller -----------------------------------------------------
-parameter DQ_WIDTH                          = 16;
-parameter ECC_TEST                          = "OFF";
-parameter ADDR_WIDTH                        = 27;
-parameter nCK_PER_CLK                       = 4;
-
-parameter DATA_WIDTH                        = 16;
-parameter PAYLOAD_WIDTH                     = (ECC_TEST == "OFF") ? DATA_WIDTH : DQ_WIDTH;
-parameter APP_DATA_WIDTH                    = 2 * nCK_PER_CLK * PAYLOAD_WIDTH;
-parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
-
-`define MC_CACHE_DATA_WIDTH                 32
-`define MC_CACHE_BLOCK_SIZE_WIDTH           4
-`define MC_CACHE_BLOCK_SIZE                 2**`MC_CACHE_BLOCK_SIZE_WIDTH
-`define MC_PACKAGE_SIZE                     16
-`define MC_CACHE_SET_SIZE_WIDTH             3
-`define MC_CACHE_SET_SIZE                   2**`MC_CACHE_SET_SIZE_WIDTH
-
-`define MC_CACHE_WRITE_FIFO_SIZE_WIDTH      3
-`define MC_CACHE_WRITE_FIFO_SIZE            2**`MC_CACHE_WRITE_FIFO_SIZE_WIDTH
-
-`define DDR_CMD_WRITE                       3'b0
-`define DDR_CMD_READ                        3'b1
-
-`define FRAMEBUFFER_READ_ID                 8'd0
-
 // Configuration >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // BVH ---------------------------------------------------------------------
 `define BVH_PRIMITIVE_PATH                  `STRINGIFY(E:/MyWork/HomebrewGPU/data/chr_sword.vox.bvh.primitives.txt)
@@ -194,7 +168,7 @@ endfunction
 
 // Ray Core --------------------------------------------------------------
 `define IMPLEMENT_SHADOWING                 1
-`define IMPLEMENT_REFLECTION                1
+//`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
 `define IMPLEMENT_BVH_TRAVERSAL             1
 `define IMPLEMENT_BVH_LEAF_AABB_TEST        1
@@ -203,6 +177,10 @@ endfunction
 //`define DEBUG_CORE                          1
 `define RAY_CORE_SIZE_WIDTH                 0
 `define RAY_CORE_SIZE                       2**`RAY_CORE_SIZE_WIDTH
+
+`define RAY_CORE_COVER_SIZE_WIDTH           6
+`define RAY_CORE_COVER_SIZE                 2**`RAY_CORE_COVER_SIZE_WIDTH
+`define RAY_CORE_THREAD_STEP                (`RAY_CORE_COVER_SIZE * (`RAY_CORE_SIZE - 1))
 
 `define AABB_TEST_UNIT_SIZE_WIDTH           0
 `define AABB_TEST_UNIT_SIZE                 2**`AABB_TEST_UNIT_SIZE_WIDTH
@@ -219,6 +197,31 @@ endfunction
 `define BOUNCE_LEVEL                        [`BOUNCE_LEVEL_WIDTH-1:0]
 `define RS_MAX_BOUNCE_LEVEL                 3//0
 
+// Memory controller -----------------------------------------------------
+parameter DQ_WIDTH                          = 16;
+parameter ECC_TEST                          = "OFF";
+parameter ADDR_WIDTH                        = 27;
+parameter nCK_PER_CLK                       = 4;
+
+parameter DATA_WIDTH                        = 16;
+parameter PAYLOAD_WIDTH                     = (ECC_TEST == "OFF") ? DATA_WIDTH : DQ_WIDTH;
+parameter APP_DATA_WIDTH                    = 2 * nCK_PER_CLK * PAYLOAD_WIDTH;
+parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
+
+`define MC_CACHE_DATA_WIDTH                 32
+`define MC_CACHE_BLOCK_SIZE_WIDTH           4
+`define MC_CACHE_BLOCK_SIZE                 2**`MC_CACHE_BLOCK_SIZE_WIDTH
+`define MC_PACKAGE_SIZE                     16
+`define MC_CACHE_SET_SIZE_WIDTH             (`RAY_CORE_SIZE_WIDTH + 2 + `RAY_CORE_COVER_SIZE_WIDTH - `MC_CACHE_BLOCK_SIZE_WIDTH)
+`define MC_CACHE_SET_SIZE                   2**`MC_CACHE_SET_SIZE_WIDTH
+
+`define MC_CACHE_WRITE_FIFO_SIZE_WIDTH      (`RAY_CORE_SIZE_WIDTH + 3)
+`define MC_CACHE_WRITE_FIFO_SIZE            2**`MC_CACHE_WRITE_FIFO_SIZE_WIDTH
+
+`define DDR_CMD_WRITE                       3'b0
+`define DDR_CMD_READ                        3'b1
+
+`define FRAMEBUFFER_READ_ID                 8'd0
 
 // Configuration >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 typedef struct {
