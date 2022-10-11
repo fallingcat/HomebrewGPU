@@ -153,7 +153,7 @@ endfunction
 `define BVH_NODE_STACK_SIZE                  2**`BVH_NODE_STACK_SIZE_WIDTH
 
 // Primitives ---------------------------------------------------------------------
-`define LOAD_BVH_MODEL                      1
+//`define LOAD_BVH_MODEL                      1
 `ifdef LOAD_BVH_MODEL
     `define BVH_MODEL_RAW_DATA_SIZE         207
 `else
@@ -167,20 +167,20 @@ endfunction
 `define MULTI_ISSUE                         1
 
 // Ray Core --------------------------------------------------------------
-`define IMPLEMENT_SHADOWING                 1
+//`define IMPLEMENT_SHADOWING                 1
 //`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
-`define IMPLEMENT_BVH_TRAVERSAL             1
-`define IMPLEMENT_BVH_LEAF_AABB_TEST        1
+//`define IMPLEMENT_BVH_TRAVERSAL             1
+//`define IMPLEMENT_BVH_LEAF_AABB_TEST        1
 //`define IMPLEMENT_SPHERE_PRIMITIVE          1
 
 //`define DEBUG_CORE                          1
 `define RAY_CORE_SIZE_WIDTH                 0
 `define RAY_CORE_SIZE                       2**`RAY_CORE_SIZE_WIDTH
 
-`define RAY_CORE_COVER_SIZE_WIDTH           6
+`define RAY_CORE_COVER_SIZE_WIDTH           5
 `define RAY_CORE_COVER_SIZE                 2**`RAY_CORE_COVER_SIZE_WIDTH
-`define RAY_CORE_THREAD_STEP                (`RAY_CORE_COVER_SIZE * (`RAY_CORE_SIZE - 1))
+`define RAY_CORE_THREAD_STEP                (`RAY_CORE_COVER_SIZE * `RAY_CORE_SIZE)
 
 `define AABB_TEST_UNIT_SIZE_WIDTH           0
 `define AABB_TEST_UNIT_SIZE                 2**`AABB_TEST_UNIT_SIZE_WIDTH
@@ -212,7 +212,7 @@ parameter APP_MASK_WIDTH                    = APP_DATA_WIDTH / 8;
 `define MC_CACHE_BLOCK_SIZE_WIDTH           4
 `define MC_CACHE_BLOCK_SIZE                 2**`MC_CACHE_BLOCK_SIZE_WIDTH
 `define MC_PACKAGE_SIZE                     16
-`define MC_CACHE_SET_SIZE_WIDTH             (`RAY_CORE_SIZE_WIDTH + 2 + `RAY_CORE_COVER_SIZE_WIDTH - `MC_CACHE_BLOCK_SIZE_WIDTH)
+`define MC_CACHE_SET_SIZE_WIDTH             (`RAY_CORE_SIZE_WIDTH + 3 + `RAY_CORE_COVER_SIZE_WIDTH - `MC_CACHE_BLOCK_SIZE_WIDTH)
 `define MC_CACHE_SET_SIZE                   2**`MC_CACHE_SET_SIZE_WIDTH
 
 `define MC_CACHE_WRITE_FIFO_SIZE_WIDTH      (`RAY_CORE_SIZE_WIDTH + 3)
