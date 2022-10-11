@@ -24,6 +24,7 @@
 `include "../Math/FixedNorm3.sv"
   
 module _SurfaceRayDir(
+    input clk,
     input logic `SCREEN_COORD x,
     input logic `SCREEN_COORD y,
     input logic `SCREEN_COORD vp_h,
@@ -39,7 +40,7 @@ module _SurfaceRayDir(
     Fixed CU, CV, X, Y;
     Fixed3 H, V, O, T;
 
-    always_comb begin
+    always_comb begin    
         X <= _Fixed(x);        
         Y <= _Fixed((vp_h - 1) - y);        
     end
@@ -72,12 +73,10 @@ endmodule
         output ThreadData thread_out        
         );	    
 
-        always_comb begin    
-            thread_out.DataValid <= 0;                          
-            if (strobe) begin               
-                nx = x;
-                ny = y;
-
+        always_comb begin            
+            nx = x;
+            ny = y;
+            if (strobe) begin                               
                 if (ny < `FRAMEBUFFER_HEIGHT && !output_fifo_full) begin   
                     // Prepare the thraed data
                     thread_out.RayCoreInput.x <= x;
@@ -98,12 +97,18 @@ endmodule
                         ny = ny + 1;		                            
                     end	                                                                           
                 end                
+                else begin
+                    thread_out.DataValid <= 0;
+                end
             end                            
+            else begin
+                thread_out.DataValid <= 0;
+            end
         end
 
-        _SurfaceRayDir SURF_DIR(
-            .x(x),
-            .y(y),
+        _SurfaceRayDir SURF_DIR(            
+            .x(thread_out.RayCoreInput.x),
+            .y(thread_out.RayCoreInput.y),
             .vp_h(rs.ViewportHeight),
             .camera_pos(rs.Camera.Pos),    
             .camera_blc(rs.Camera.BLC),
@@ -133,8 +138,7 @@ endmodule
         always_ff @( posedge clk, negedge resetn) begin		                       
             if (!resetn) begin            
                 NX[0] = x0;                                    
-                NY[0] = y0;          
-                //FrameFinished = 0;    
+                NY[0] = y0;                          
                 NextState <= TGS_Init;            
             end
             else begin
@@ -142,8 +146,7 @@ endmodule
 
                 if (reset) begin                                                
                     NX[0] = x0;                                    
-                    NY[0] = y0;          
-                    //FrameFinished = 0;
+                    NY[0] = y0;                              
                     NextState <= TGS_Wait;
                 end
                 else begin
@@ -151,8 +154,7 @@ endmodule
                         TGS_Init: begin                    
                             if (reset) begin                                                
                                 NX[0] = x0;                                    
-                                NY[0] = y0;          
-                                //FrameFinished = 0;
+                                NY[0] = y0;                                          
                                 NextState <= TGS_Wait;
                             end
                         end
@@ -183,7 +185,7 @@ endmodule
 
         generate
             for (genvar i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin : CORE_THREAD_ARRY    
-                _CoreThreadDataGenerator CORE_THREAD_DATA(
+                _CoreThreadDataGenerator CORE_THREAD_DATA(                    
                     .strobe(State == TGS_Generate),	
                     .output_fifo_full(output_fifo_full[i]),
                     .rs(rs),    

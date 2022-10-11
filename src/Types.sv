@@ -168,7 +168,7 @@ endfunction
 
 // Ray Core --------------------------------------------------------------
 `define IMPLEMENT_SHADOWING                 1
-//`define IMPLEMENT_REFLECTION                1
+`define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
 `define IMPLEMENT_BVH_TRAVERSAL             1
 `define IMPLEMENT_BVH_LEAF_AABB_TEST        1
