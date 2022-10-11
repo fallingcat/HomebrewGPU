@@ -63,6 +63,164 @@ endmodule
         input strobe,
         input logic output_fifo_full,        
         input RenderState rs,    
+        input logic `SCREEN_COORD x,
+        input logic `SCREEN_COORD y,     
+
+        output logic `SCREEN_COORD nx,
+        output logic `SCREEN_COORD ny,             
+        //output DebugData debug_data,    
+        output ThreadData thread_out        
+        );	    
+
+        logic [`RAY_CORE_COVER_SIZE_WIDTH-1:0] Count = 0;
+
+        always_comb begin    
+            thread_out.DataValid <= 0;                          
+            if (strobe) begin               
+                nx = x;
+                ny = y;
+
+                if (ny < `FRAMEBUFFER_HEIGHT && !output_fifo_full) begin   
+                    if (Count == 0) begin
+                        nx = nx + `RAY_CORE_COVER_SIZE;
+                        ny = y;
+                        if (nx >= `FRAMEBUFFER_WIDTH) begin
+                            nx = nx - `FRAMEBUFFER_WIDTH;
+                            ny = ny + 1;		                            
+                        end	                                                
+                    end
+
+                    // Prepare the thraed data
+                    thread_out.RayCoreInput.x <= x + Count;
+                    thread_out.RayCoreInput.y <= y;                      
+                    thread_out.RayCoreInput.BounceLevel <= 0;
+                    thread_out.RayCoreInput.LastColor <= _RGB8(0, 0, 0);                                        
+                    thread_out.RayCoreInput.SurfaceRay.MinT <= _Fixed(0);
+                    thread_out.RayCoreInput.SurfaceRay.MaxT <= _Fixed(1000);                                                  
+                    thread_out.RayCoreInput.SurfaceRay.Orig <= rs.Camera.Pos;
+                    thread_out.RayCoreInput.SurfaceRay.PI <= `NULL_PRIMITIVE_INDEX; // means the raster ray is from camera                          
+                    // Indicate that the thread data for currey core is ready
+                    thread_out.DataValid <= 1;                 
+
+                    Count = Count + 1;
+                    if (Count == 0) begin                        
+                        CX = CX + `RAY_CORE_THREAD_STEP;
+                        if (CX >= `FRAMEBUFFER_WIDTH) begin
+                            CX = CX - `FRAMEBUFFER_WIDTH;
+                            CY = CY + 1;
+                        end	                            
+                    end	                                                                                                                              
+                end                
+            end    
+            else begin
+                Count = 0;
+            end                        
+        end
+
+        _SurfaceRayDir SURF_DIR(
+            .x(thread_out.RayCoreInput.x),
+            .y(thread_out.RayCoreInput.y),
+            .vp_h(rs.ViewportHeight),
+            .camera_pos(rs.Camera.Pos),    
+            .camera_blc(rs.Camera.BLC),
+            .camera_rh(rs.Camera.RH),
+            .camera_rv(rs.Camera.RV),
+            .camera_cub(rs.Camera.CUB),    
+            .camera_cvb(rs.Camera.CVB),        
+            .out(thread_out.RayCoreInput.SurfaceRay.Dir)              
+        );             
+    endmodule
+    
+    module ThreadGenerator(
+        input clk,
+        input resetn,	
+        input strobe,
+        input reset,        
+        input output_fifo_full[`RAY_CORE_SIZE],        
+        input RenderState rs,    
+        input logic `SCREEN_COORD x0,
+        input logic `SCREEN_COORD y0,   
+        output DebugData debug_data,            
+        output ThreadData thread_out[`RAY_CORE_SIZE]
+        );		   
+        ThreadGeneratorState State, NextState = TGS_Init;             
+        logic `SCREEN_COORD NX[`RAY_CORE_SIZE+1], NY[`RAY_CORE_SIZE+1];                    
+        
+        always_ff @( posedge clk, negedge resetn) begin		                       
+            if (!resetn) begin            
+                NX[0] = x0;                                    
+                NY[0] = y0;          
+                //FrameFinished = 0;    
+                NextState <= TGS_Init;            
+            end
+            else begin
+                State = NextState;                
+
+                if (reset) begin                                                
+                    NX[0] = x0;                                    
+                    NY[0] = y0;          
+                    //FrameFinished = 0;
+                    NextState <= TGS_Wait;
+                end
+                else begin
+                    case (State)
+                        TGS_Init: begin                    
+                            if (reset) begin                                                
+                                NX[0] = x0;                                    
+                                NY[0] = y0;          
+                                //FrameFinished = 0;
+                                NextState <= TGS_Wait;
+                            end
+                        end
+
+                        TGS_Wait: begin                    
+                            if (strobe) begin                                  
+                                NextState <= TGS_Generate;
+                            end            
+                        end
+
+                        TGS_Generate: begin
+                            NextState <= TGS_NextThread;                                                                        
+                        end                                   
+
+                        TGS_NextThread: begin
+                            NX[0] = NX[`RAY_CORE_SIZE];
+                            NY[0] = NY[`RAY_CORE_SIZE];                        
+                            NextState <= TGS_Generate;                                                                                            
+                        end
+
+                        default: begin
+                            NextState <= TGS_Init;                
+                        end                        
+                    endcase                            
+                end
+            end
+        end	
+
+        generate
+            for (genvar i = 0; i < `RAY_CORE_SIZE; i = i + 1) begin : CORE_THREAD_ARRY    
+                _CoreThreadDataGenerator CORE_THREAD_DATA(
+                    .strobe(State == TGS_Generate),	
+                    .output_fifo_full(output_fifo_full[i]),
+                    .rs(rs),    
+                    .x(NX[i]),
+                    .y(NY[i]),
+                    .nx(NX[i+1]),
+                    .ny(NY[i+1]),
+                    //.debug_data(debug_data),
+                    .thread_out(thread_out[i])
+                );	    
+            end
+        endgenerate      
+    endmodule
+
+
+
+    module _CoreThreadDataGenerator(
+        input clk,
+        input strobe,
+        input logic output_fifo_full,        
+        input RenderState rs,    
         input logic `SCREEN_COORD x0,
         input logic `SCREEN_COORD y0,               
         output DebugData debug_data,    
