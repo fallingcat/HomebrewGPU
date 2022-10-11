@@ -59,6 +59,7 @@ endmodule
 
 `ifdef MULTI_ISSUE
     module _CoreThreadDataGenerator(
+        input clk,
         input strobe,
         input logic output_fifo_full,        
         input RenderState rs,    
@@ -72,7 +73,7 @@ endmodule
         );	    
 
         always_comb begin    
-            thread_out.DataValid <= 0;              
+            thread_out.DataValid <= 0;                          
             if (strobe) begin               
                 nx = x;
                 ny = y;
@@ -113,20 +114,7 @@ endmodule
             .out(thread_out.RayCoreInput.SurfaceRay.Dir)              
         );             
     endmodule
-
-    module _FinishThreadGenerator(
-        input logic `SCREEN_COORD x,
-        input logic `SCREEN_COORD y,     
-        output logic `SCREEN_COORD nx,
-        output logic `SCREEN_COORD ny
-        );
-
-        always_comb begin        
-            nx <= x;
-            ny <= y;
-        end   
-    endmodule
-
+    
     module ThreadGenerator(
         input clk,
         input resetn,	
