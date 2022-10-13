@@ -96,7 +96,7 @@ module Renderer(
 	//logic [8:0] CameraDegree = 0;
 	
     assign flip = FrameFlip;
-	assign debug_data.Number[0] = FrameKCycles;	
+	//assign debug_data.Number[0] = FrameKCycles;	
 	
 	initial begin
 		//$readmemh("E:/MyWork/HomebrewGPU/Prototype/HomebrewGPU/data/CameraPos.txt", CameraPosLUT);		
@@ -243,7 +243,7 @@ module Renderer(
 					RS_Strobe <= 0;				
 
 					PixelCounter = PixelCounter + FBW_PixelCount;
-					if (PixelCounter >= `FRAMEBUFFER_PIXEL_COUNT) begin														
+					if (PixelCounter >= `FRAMEBUFFER_PIXEL_COUNT) begin
 						FrameCounter = FrameCounter + 1;
 						FrameKCycles = FrameKCycleCounter;
 						NextState <= RS_Wait_VSync;

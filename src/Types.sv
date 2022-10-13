@@ -174,7 +174,7 @@ endfunction
 //`define IMPLEMENT_BVH_LEAF_AABB_TEST        1
 //`define IMPLEMENT_SPHERE_PRIMITIVE          1
 
-//`define DEBUG_CORE                          1
+`define DEBUG_CORE                          1
 `define RAY_CORE_SIZE_WIDTH                 0
 `define RAY_CORE_SIZE                       2**`RAY_CORE_SIZE_WIDTH
 
