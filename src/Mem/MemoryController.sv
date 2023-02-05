@@ -69,16 +69,16 @@ module MemoryTask(
     logic ReadStrobe, WriteStrobe;
 
     function ReceieveData();    
-        if (app_rd_data_valid) begin                   
-            read_data.ID = r_task.ID;               
+        if (app_rd_data_valid) begin                               
             read_data.Data[DataCounter * nCK_PER_CLK + 0] <= app_rd_data[127:96];
             read_data.Data[DataCounter * nCK_PER_CLK + 1] <= app_rd_data[95:64];
             read_data.Data[DataCounter * nCK_PER_CLK + 2] <= app_rd_data[63:32];
             read_data.Data[DataCounter * nCK_PER_CLK + 3] <= app_rd_data[31:0];  
             DataCounter = DataCounter + 1;         
             if (DataCounter >= r_task.BlockCount) begin                                                                                                            
-                valid <= 1;
-                read_data.Valid <= 1;
+                valid <= 1;                
+                read_data.ReadAddress <= r_task.Address;               
+                read_data.Valid <= 1;                
                 NextState <= MCS_Wait; 
             end                                                                 
         end                        
@@ -368,8 +368,7 @@ module MemoryController(
 
             if (ReadStrobe && ReadTaskQueue[ReadTaskQueueBottom].Address != request_r.ReadAddress) begin
                 ReadTaskQueue[ReadTaskQueueBottom].Address = request_r.ReadAddress;
-                ReadTaskQueue[ReadTaskQueueBottom].BlockCount = request_r.BlockCount;
-                ReadTaskQueue[ReadTaskQueueBottom].ID = request_r.ReadID;
+                ReadTaskQueue[ReadTaskQueueBottom].BlockCount = request_r.BlockCount;                
                 ReadTaskQueueBottom = ReadTaskQueueBottom + 1;                                                                
             end
 

@@ -76,8 +76,8 @@ endmodule
         always_comb begin            
             nx = x;
             ny = y;
-            if (strobe) begin                               
-                if (ny < `FRAMEBUFFER_HEIGHT && !output_fifo_full) begin   
+            if (strobe && !output_fifo_full) begin                               
+                if (ny < `FRAMEBUFFER_HEIGHT) begin   
                     // Prepare the thraed data
                     thread_out.RayCoreInput.x <= x;
                     thread_out.RayCoreInput.y <= y;                      

@@ -171,7 +171,7 @@ endfunction
 `define IMPLEMENT_REFLECTION                1
 //`define IMPLEMENT_REFRACTION                1
 `define IMPLEMENT_BVH_TRAVERSAL             1
-`define IMPLEMENT_BVH_LEAF_AABB_TEST        1
+//`define IMPLEMENT_BVH_LEAF_AABB_TEST        1
 //`define IMPLEMENT_SPHERE_PRIMITIVE          1
 
 //`define DEBUG_CORE                          1
@@ -289,8 +289,7 @@ typedef enum logic [3:0] {
 
 typedef struct {
     logic [ADDR_WIDTH-1:0] Address;
-    logic [2:0] BlockCount; // 1 ~ 4 : Write size = 128 bits * BlockCount
-    MemoryRequestUnitType ID;
+    logic [2:0] BlockCount; // 1 ~ 4 : Write size = 128 bits * BlockCount    
 } MemoryReadTask;
 
 typedef struct {
@@ -300,16 +299,15 @@ typedef struct {
 } MemoryWriteTask;
 
 typedef struct {
-    logic [`MC_CACHE_DATA_WIDTH-1:0] Data[`MC_CACHE_BLOCK_SIZE];
-    MemoryRequestUnitType ID;    
+    logic [`MC_CACHE_DATA_WIDTH-1:0] Data[`MC_CACHE_BLOCK_SIZE];    
+    logic [ADDR_WIDTH-1:0] ReadAddress;
     logic Valid;
 } MemoryReadData;
 
 typedef struct {
     logic ReadStrobe;        
     logic [ADDR_WIDTH-1:0] ReadAddress;    
-    logic [2:0] BlockCount; // 1 ~ 4 : Write size = 128 bits * BlockCount
-    MemoryRequestUnitType ReadID;
+    logic [2:0] BlockCount; // 1 ~ 4 : Write size = 128 bits * BlockCount    
 } MemoryReadRequest;
 
 typedef struct {
