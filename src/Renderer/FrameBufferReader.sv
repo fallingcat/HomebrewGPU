@@ -98,7 +98,7 @@ module FrameBufferReader(
     logic `SCREEN_COORD FBX, FBY;
     
     always_comb begin                 
-        if (read_data.Valid && read_data.ReadAddress == CacheReadAddress) begin
+        if (read_data.ReadAddress == CacheReadAddress) begin
         
             Cache[~CacheSetIndex] <= read_data.Data;            
         end

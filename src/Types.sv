@@ -299,9 +299,8 @@ typedef struct {
 } MemoryWriteTask;
 
 typedef struct {
-    logic [`MC_CACHE_DATA_WIDTH-1:0] Data[`MC_CACHE_BLOCK_SIZE];    
     logic [ADDR_WIDTH-1:0] ReadAddress;
-    logic Valid;
+    logic [`MC_CACHE_DATA_WIDTH-1:0] Data[`MC_CACHE_BLOCK_SIZE];            
 } MemoryReadData;
 
 typedef struct {

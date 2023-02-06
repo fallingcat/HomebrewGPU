@@ -77,8 +77,7 @@ module MemoryTask(
             DataCounter = DataCounter + 1;         
             if (DataCounter >= r_task.BlockCount) begin                                                                                                            
                 valid <= 1;                
-                read_data.ReadAddress <= r_task.Address;               
-                read_data.Valid <= 1;                
+                read_data.ReadAddress <= r_task.Address;
                 NextState <= MCS_Wait; 
             end                                                                 
         end                        
@@ -133,7 +132,7 @@ module MemoryTask(
                         DataCounter <= 0;    
                         PackageCounter <= 1;
                         PackageOrder <= 0;
-                        read_data.Valid <= 0;
+                        read_data.ReadAddress <= 0;
                         valid <= 0;
                         busy <= 1;
                         NextState <= MCS_Read; 
