@@ -66,9 +66,9 @@ module BuildMemoryReadRequest (
                     mem_request.ReadAddress = (FBY * `FRAMEBUFFER_WIDTH + FBX);       
                     mem_request.ReadAddress = (mem_request.ReadAddress * 2) + (APP_DATA_WIDTH / DQ_WIDTH);
                     mem_request.ReadAddress = (flip) ? mem_request.ReadAddress + `FRAMEBUFFER_ADDR_1 : mem_request.ReadAddress + `FRAMEBUFFER_ADDR_0;
-                    mem_request.BlockCount = (32 * `MC_CACHE_BLOCK_SIZE / APP_DATA_WIDTH);                                        
+                    mem_request.BlockCount = (32 * `MC_CACHE_BLOCK_SIZE / APP_DATA_WIDTH);                                                            
+                    read_address = mem_request.ReadAddress;                 
                     mem_request.ReadStrobe <= 1;   
-                    read_address <= mem_request.ReadAddress;                 
                 end                
             end            
         end          
@@ -98,8 +98,7 @@ module FrameBufferReader(
     logic `SCREEN_COORD FBX, FBY;
     
     always_comb begin                 
-        if (read_data.ReadAddress == CacheReadAddress) begin
-        
+        if (read_data.ReadAddress == CacheReadAddress) begin        
             Cache[~CacheSetIndex] <= read_data.Data;            
         end
     end            
